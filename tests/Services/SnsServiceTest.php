@@ -34,7 +34,7 @@ class SnsServiceTest extends TestCase
         $this->assertSame('arn:aws:sns:us-east-1:123456789012:my-topic', $arn);
     }
 
-    public function testCreateThrowsException(): void
+    public function testCreateTopicThrowsExceptionIfItFails(): void
     {
         $this->expectException(MononokeException::class);
 
@@ -87,7 +87,7 @@ class SnsServiceTest extends TestCase
         $this->service->notify('arn:aws:sns:test', $message);
     }
 
-    public function testNotifyInvalidJson(): void
+    public function testNotifyInvalidJsonThrowsException(): void
     {
         $this->expectException(MononokeException::class);
 
@@ -96,7 +96,7 @@ class SnsServiceTest extends TestCase
         $this->service->notify('arn:aws:sns:test', ["data" => $invalid]);
     }
 
-    public function testSubscribeSuccess(): void
+    public function testSubscribe(): void
     {
         $this->mockSnsClient->expects($this->once())
             ->method('__call')
@@ -111,7 +111,7 @@ class SnsServiceTest extends TestCase
         $this->service->subscribe('arn:aws:sns:test', 'arn:aws:sqs:test');
     }
 
-    public function testSubscribeFailure(): void
+    public function testSubscribeThrowsException(): void
     {
         $this->expectException(MononokeException::class);
 
