@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  localstack:
+    image: localstack/localstack:3
+    container_name: localstack
+    ports:
+      - "4566:4566"   # Main edge port for AWS services
+      - "4571:4571"
+    environment:
+      - SERVICES=sns,sqs
+      - DEBUG=1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "localstack_data:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  service:
+    image: mononoke
+    restart: on-failure
+    depends_on:
+      - localstack
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - "./public:/app/public"
+    environment:
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT: http://localstack:4566
+
+volumes:
+  localstack_data:
