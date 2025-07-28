@@ -25,4 +25,4 @@ jobs:
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
       - name: Run PHPUnit tests
-        run: ./vendor/bin/phpunit --colors=always --verbose
+        run: ./vendor/bin/phpunit tests --colors=always
