@@ -24,4 +24,4 @@ COPY --from=composer-stage /app /app
 COPY . .
 
 # Set the command to run your ReactPHP HTTP server
-CMD ["php", "public/index.php"]
+CMD ["php", "examples/http.php"]

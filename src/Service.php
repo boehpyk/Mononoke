@@ -89,6 +89,11 @@ class Service
                 $instance = $attr->newInstance();
                 $routes[] = ['GET', $instance->path, [$this, $method->getName()]];
             }
+            foreach ($method->getAttributes(\Kekke\Mononoke\Attributes\HttpPost::class) as $attr) {
+                /** @var \Kekke\Mononoke\Attributes\HttpPost $instance */
+                $instance = $attr->newInstance();
+                $routes[] = ['POST', $instance->path, [$this, $method->getName()]];
+            }
         }
 
         $dispatcher = simpleDispatcher(function (RouteCollector $r) use ($routes) {
