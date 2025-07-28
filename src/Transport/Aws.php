@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Kekke\Mononoke;
+namespace Kekke\Mononoke\Transport;
 
 use Aws\Sdk;
 use Aws\Sns\SnsClient;
@@ -15,7 +15,7 @@ use Throwable;
 use function React\Async\async;
 use function React\Async\await;
 
-class Mononoke
+class Aws
 {
     private static ?SnsClient $client = null;
 
