@@ -1,4 +1,4 @@
-FROM php:8.3-cli-alpine AS composer-stage
+FROM php:8.4-cli-alpine
 
 RUN apk add --no-cache unzip git
 
