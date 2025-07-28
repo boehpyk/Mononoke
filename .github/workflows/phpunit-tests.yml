@@ -11,13 +11,6 @@ jobs:
   phpunit:
     runs-on: ubuntu-latest
 
-    services:
-      # Optional: add services like localstack if your tests need them
-      # localstack:
-      #   image: localstack/localstack
-      #   ports:
-      #     - 4566:4566
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
