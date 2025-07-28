@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   localstack:
     image: localstack/localstack:3
@@ -23,9 +21,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"
-    volumes:
-      - "./public:/app/public"
     environment:
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: test

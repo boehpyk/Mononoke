@@ -9,7 +9,7 @@ use Aws\Sns\SnsClient;
 use Aws\Exception\AwsException;
 use JsonException;
 use Kekke\Mononoke\Exceptions\MononokeException;
-use Kekke\Mononoke\Models\AwsCredentials as ModelsAwsCredentials;
+use Kekke\Mononoke\Models\AwsCredentials;
 use Throwable;
 
 use function React\Async\async;
@@ -55,7 +55,7 @@ class Mononoke
     private static function getClient(): SnsClient
     {
         if (self::$client === null) {
-            $creds = ModelsAwsCredentials::load();
+            $creds = AwsCredentials::load();
 
             $sdk = new Sdk([
                 'region' => $creds->region,
