@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Kekke\Mononoke\Transport;
 
 use Aws\Sdk;
-use Aws\Sns\SnsClient;
 use Aws\Exception\AwsException;
+use Aws\Sqs\SqsClient;
 use JsonException;
 use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Models\AwsCredentials;
@@ -15,21 +15,21 @@ use Throwable;
 use function React\Async\async;
 use function React\Async\await;
 
-class Aws
+class AwsSqs
 {
-    private static ?SnsClient $client = null;
+    private static ?SqsClient $client = null;
 
-    public static function setSnsClient(SnsClient $client): void
+    public static function setSqsClient(SqsClient $client): void
     {
         self::$client = $client;
     }
 
-    public static function SnsPublish(string $topic, array $data): mixed
+    public static function publish(string $queueName, array $data): mixed
     {
         try {
             $payload = json_encode($data, JSON_THROW_ON_ERROR);
         } catch (JsonException $e) {
-            throw new MononokeException("Failed to encode SNS message to JSON: " . $e->getMessage(), 0, $e);
+            throw new MononokeException("Failed to encode SQS message to JSON: " . $e->getMessage(), 0, $e);
         }
 
         try {
@@ -39,20 +39,26 @@ class Aws
 
             $client = self::$client;
 
-            return await(async(function () use ($client, $topic, $payload) {
-                return $client->publish([
-                    'TopicArn' => $topic,
-                    'Message' => $payload,
+            $result = $client->getQueueUrl([
+                'QueueName' => $queueName,
+            ]);
+
+            $queueUrl = $result->get('QueueUrl');
+
+            return await(async(function () use ($client, $queueUrl, $payload) {
+                return $client->sendMessage([
+                    'QueueUrl'    => $queueUrl,
+                    'MessageBody' => $payload,
                 ]);
             })());
         } catch (AwsException $e) {
-            throw new MononokeException("AWS SNS publish failed: " . $e->getAwsErrorMessage(), 0, $e);
+            throw new MononokeException("AWS SQS publish failed: " . $e->getAwsErrorMessage(), 0, $e);
         } catch (Throwable $e) {
-            throw new MononokeException("Unexpected error during SNS publish: " . $e->getMessage(), 0, $e);
+            throw new MononokeException("Unexpected error during SQS publish: " . $e->getMessage(), 0, $e);
         }
     }
 
-    private static function getClient(): SnsClient
+    private static function getClient(): SqsClient
     {
         if (self::$client === null) {
             $creds = AwsCredentials::load();
@@ -67,7 +73,7 @@ class Aws
                 ],
             ]);
 
-            self::$client = $sdk->createSns();
+            self::$client = $sdk->createSqs();
         }
 
         return self::$client;

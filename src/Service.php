@@ -84,15 +84,10 @@ class Service
         $routes = [];
 
         foreach ($reflector->getMethods() as $method) {
-            foreach ($method->getAttributes(\Kekke\Mononoke\Attributes\HttpGet::class) as $attr) {
-                /** @var \Kekke\Mononoke\Attributes\HttpGet $instance */
+            foreach ($method->getAttributes(\Kekke\Mononoke\Attributes\Http::class) as $attr) {
+                /** @var \Kekke\Mononoke\Attributes\Http $instance */
                 $instance = $attr->newInstance();
-                $routes[] = ['GET', $instance->path, [$this, $method->getName()]];
-            }
-            foreach ($method->getAttributes(\Kekke\Mononoke\Attributes\HttpPost::class) as $attr) {
-                /** @var \Kekke\Mononoke\Attributes\HttpPost $instance */
-                $instance = $attr->newInstance();
-                $routes[] = ['POST', $instance->path, [$this, $method->getName()]];
+                $routes[] = [$instance->method->value, $instance->path, [$this, $method->getName()]];
             }
         }
 

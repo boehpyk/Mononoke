@@ -5,20 +5,20 @@ declare(strict_types=1);
 use Aws\Result;
 use Aws\Sns\SnsClient;
 use Kekke\Mononoke\Exceptions\MononokeException;
-use Kekke\Mononoke\Transport\Aws;
+use Kekke\Mononoke\Transport\AwsSns;
 use PHPUnit\Framework\TestCase;
 
 use function React\Promise\resolve;
 use function React\Promise\reject;
 
-final class AwsTest extends TestCase
+final class AwsSnsTest extends TestCase
 {
     private SnsClient $mockClient;
 
     protected function setUp(): void
     {
         $this->mockClient = $this->createMock(SnsClient::class);
-        Aws::setSnsClient($this->mockClient);
+        AwsSns::setSnsClient($this->mockClient);
     }
 
     public function testSnsPublishSuccess(): void
@@ -34,8 +34,8 @@ final class AwsTest extends TestCase
             )
             ->willReturn(resolve(new Result(['MessageId' => '123'])));
 
-        Aws::setSnsClient($this->mockClient);
-        Aws::SnsPublish('arn:aws:sns:localstack:test-topic', ['msg' => 'Hello']);
+        AwsSns::setSnsClient($this->mockClient);
+        AwsSns::publish('arn:aws:sns:localstack:test-topic', ['msg' => 'Hello']);
     }
 
     public function testSnsPublishFailure(): void
@@ -53,7 +53,7 @@ final class AwsTest extends TestCase
 
         $this->expectException(MononokeException::class);
 
-        Aws::SnsPublish('arn:aws:sns:localstack:test-topic', ['msg' => 'Error']);
+        AwsSns::publish('arn:aws:sns:localstack:test-topic', ['msg' => 'Error']);
     }
 
     public function testSnsPublishThrowsOnInvalidJson(): void
@@ -64,6 +64,6 @@ final class AwsTest extends TestCase
         $this->expectException(MononokeException::class);
         $this->expectExceptionMessageMatches('/Failed to encode SNS message to JSON:/');
 
-        Aws::SnsPublish('arn:aws:sns:localstack:test-topic', $badData);
+        AwsSns::publish('arn:aws:sns:localstack:test-topic', $badData);
     }
 }
