@@ -27,7 +27,7 @@ final class AwsSqsTest extends TestCase
             ->expects($this->exactly(2))
             ->method('__call')
             ->willReturnCallback(function ($method, $args) {
-                if ($method === 'getQueueUrl' && $args[0] === ['QueueName' => 'test']) {
+                if ($method === 'getQueueUrlAsync' && $args[0] === ['QueueName' => 'test']) {
                     return new Result(['QueueUrl' => 'https://sqs.local/queue/test']);
                 }
 
@@ -66,7 +66,7 @@ final class AwsSqsTest extends TestCase
                 }
 
                 if (
-                    $method === 'getQueueUrl' &&
+                    $method === 'getQueueUrlAsync' &&
                     $args[0] === ['QueueName' => 'test']
                 ) {
                     return new Result(['QueueUrl' => 'https://sqs.local/queue/test']);

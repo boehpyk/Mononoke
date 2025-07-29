@@ -39,11 +39,11 @@ class AwsSqs
 
             $client = self::$client;
 
-            $result = $client->getQueueUrl([
-                'QueueName' => $queueName,
-            ]);
-
-            $queueUrl = $result->get('QueueUrl');
+            $queueUrl = await(async(function () use ($client, $queueName) {
+                /** @var \Aws\Result $result */
+                $result = $client->getQueueUrlAsync(['QueueName' => $queueName]);
+                return $result->get('QueueUrl');
+            })());
 
             return await(async(function () use ($client, $queueUrl, $payload) {
                 return $client->sendMessage([
