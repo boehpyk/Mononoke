@@ -22,15 +22,19 @@ class SnsService
 
         $creds = AwsCredentials::load();
 
-        $this->sns = new SnsClient([
-            'region' => $creds->region,
-            'version' => 'latest',
-            'endpoint' => $creds->endpoint,
-            'credentials' => [
-                'key' => $creds->key,
-                'secret' => $creds->secret,
-            ]
-        ]);
+        try {
+            $this->sns = new SnsClient([
+                'region' => $creds->region,
+                'version' => 'latest',
+                'endpoint' => $creds->endpoint,
+                'credentials' => [
+                    'key' => $creds->key,
+                    'secret' => $creds->secret,
+                ]
+            ]);
+        } catch (AwsException $e) {
+            throw new MononokeException("AWS SDK failed to initialize: " . $e->getMessage());
+        }
     }
 
     public function create(string $topicName): string

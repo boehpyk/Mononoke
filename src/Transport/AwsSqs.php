@@ -39,18 +39,15 @@ class AwsSqs
 
             $client = self::$client;
 
-            $queueUrl = await(async(function () use ($client, $queueName) {
-                /** @var \Aws\Result $result */
-                $result = $client->getQueueUrlAsync(['QueueName' => $queueName]);
-                return $result->get('QueueUrl');
-            })());
+            /** @var \Aws\Result $result */
+            $result = $client->getQueueUrl(['QueueName' => $queueName]);
+            $queueUrl = $result->get('QueueUrl');
 
-            return await(async(function () use ($client, $queueUrl, $payload) {
-                return $client->sendMessage([
-                    'QueueUrl'    => $queueUrl,
-                    'MessageBody' => $payload,
-                ]);
-            })());
+
+            return $client->sendMessage([
+                'QueueUrl'    => $queueUrl,
+                'MessageBody' => $payload,
+            ]);
         } catch (AwsException $e) {
             throw new MononokeException("AWS SQS publish failed: " . $e->getAwsErrorMessage(), 0, $e);
         } catch (Throwable $e) {

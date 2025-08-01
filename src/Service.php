@@ -46,14 +46,17 @@ class Service
                 /** @var AwsSnsSqs $instance */
                 $instance = $attr->newInstance();
                 $instance->setup();
-                $queueMap[$instance->queueName] = $method->getName();
+                $queueMap[$instance->queueUrl] = $method->getName();
             }
         }
+
+        echo "Finished creating queueMap\n";
+        print_r($queueMap);
 
         Loop::addPeriodicTimer(5, function () use ($queueMap) {
             foreach ($queueMap as $queueUrl => $methodName) {
                 try {
-                    echo "Polling $methodName\n";
+                    echo "Polling $methodName\nQueueUrl: $queueUrl\n";
                     $result = $this->sqs->receiveMessage([
                         'QueueUrl' => $queueUrl,
                         'MaxNumberOfMessages' => 5,
@@ -63,10 +66,9 @@ class Service
                     if (!empty($result['Messages'])) {
                         foreach ($result['Messages'] as $message) {
                             $body = json_decode($message['Body'], true);
-                            $snsMessage = json_decode($body['Message'] ?? '', true) ?? $body['Message'] ?? '';
 
                             // Dispatch message to method
-                            $this->{$methodName}($snsMessage);
+                            $this->{$methodName}($body['Message']);
 
                             // Delete message
                             $this->sqs->deleteMessage([

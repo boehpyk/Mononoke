@@ -11,4 +11,4 @@ RUN composer install --no-dev --optimize-autoloader
 COPY src/ ./src/
 COPY examples/ ./examples/
 
-CMD ["php", "examples/http.php"]
+CMD ["php", "examples/sns.php"]

@@ -7,6 +7,7 @@ namespace Kekke\Mononoke\Transport;
 use Aws\Sdk;
 use Aws\Sns\SnsClient;
 use Aws\Exception\AwsException;
+use Exception;
 use JsonException;
 use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Models\AwsCredentials;
@@ -38,13 +39,17 @@ class AwsSns
             }
 
             $client = self::$client;
+            try {
+                $topicResult = $client->createTopic(['Name' => $topic]);
+                $topicArn = $topicResult['TopicArn'];
+            } catch (AwsException $createEx) {
+                throw new Exception("Insufficient permissions to create SNS topic '{$topic}': " . $createEx->getMessage());
+            }
 
-            return await(async(function () use ($client, $topic, $payload) {
-                return $client->publish([
-                    'TopicArn' => $topic,
-                    'Message' => $payload,
-                ]);
-            })());
+            return $client->publish([
+                'TopicArn' => $topicArn,
+                'Message' => $payload,
+            ]);
         } catch (AwsException $e) {
             throw new MononokeException("AWS SNS publish failed: " . $e->getAwsErrorMessage(), 0, $e);
         } catch (Throwable $e) {
