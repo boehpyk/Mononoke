@@ -18,6 +18,7 @@ class AwsSnsSqs
     public string $topicName;
     public string $queueName;
     public string $queueUrl;
+    public string $queueArn;
 
     public function __construct(string $topicName, string $queueName)
     {
@@ -50,7 +51,7 @@ class AwsSnsSqs
                 throw new MononokeException("Missing Queue Attributes for queue: {$this->queueUrl}");
             }
 
-            $snsService->subscribe(topicArn: $topicArn, queueArn: $this->queueUrl);
+            $snsService->subscribe(topicArn: $topicArn, queueArn: $queueAttributes['Attributes']['QueueArn']);
         } catch (AwsException $e) {
             throw new MononokeException("Failed to setup subscription: " . $e->getMessage());
         }

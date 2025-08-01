@@ -12,9 +12,6 @@ use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Models\AwsCredentials;
 use Throwable;
 
-use function React\Async\async;
-use function React\Async\await;
-
 class AwsSqs
 {
     private static ?SqsClient $client = null;
