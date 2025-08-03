@@ -8,6 +8,7 @@ use Monolog\Logger as MonologLogger;
 use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
 class Logger
 {
@@ -59,6 +60,15 @@ class Logger
     public static function error(string $message, array $context = []): void
     {
         self::init();
+        self::$logger->error($message, $context);
+    }
+
+    public static function exception(string $message, Throwable $exception, array $context = []): void
+    {
+        self::init();
+        if (!isset($context['Exception'])) {
+            $context['Exception'] = $exception->getMessage();
+        }
         self::$logger->error($message, $context);
     }
 

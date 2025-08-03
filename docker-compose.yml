@@ -16,8 +16,10 @@ services:
   service:
     image: mononoke
     restart: on-failure
+    tty: true
     depends_on:
-      - localstack
+      localstack:
+        condition: service_healthy
     ports:
       - "80:80"
       - "443:443"
@@ -26,6 +28,8 @@ services:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       AWS_ENDPOINT: http://localstack:4566
+    volumes:
+      - ./src/:/app/src/
 
 volumes:
   localstack_data:

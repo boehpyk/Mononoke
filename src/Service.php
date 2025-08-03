@@ -9,6 +9,7 @@ use Aws\Sns\SnsClient;
 use Aws\Sqs\SqsClient;
 use FastRoute\RouteCollector;
 use Kekke\Mononoke\Attributes\AwsSnsSqs;
+use Kekke\Mononoke\Helpers\Logger;
 use ReflectionClass;
 use React\EventLoop\Loop;
 use React\Http\HttpServer;
@@ -50,27 +51,26 @@ class Service
             }
         }
 
-        echo "Finished creating queueMap\n";
-        print_r($queueMap);
-
         Loop::addPeriodicTimer(5, function () use ($queueMap) {
             foreach ($queueMap as $queueUrl => $methodName) {
                 try {
-                    echo "Polling $methodName\nQueueUrl: $queueUrl\n";
+                    Logger::info("Polling from SQS", ['method' => $methodName, 'queueArn' => $queueUrl]);
+                    $messageHandlerClosure = \Closure::fromCallable([$this, $methodName]);
+
+                    /** @var \Aws\Result $result */
                     $result = $this->sqs->receiveMessage([
                         'QueueUrl' => $queueUrl,
                         'MaxNumberOfMessages' => 5,
-                        'WaitTimeSeconds' => 1
+                        'WaitTimeSeconds' => 0
                     ]);
 
                     if (!empty($result['Messages'])) {
                         foreach ($result['Messages'] as $message) {
                             $body = json_decode($message['Body'], true);
 
-                            // Dispatch message to method
-                            $this->{$methodName}($body['Message']);
+                            Logger::info("Triggering closure", ['body' => $body]);
+                            $messageHandlerClosure($body['Message']);
 
-                            // Delete message
                             $this->sqs->deleteMessage([
                                 'QueueUrl' => $queueUrl,
                                 'ReceiptHandle' => $message['ReceiptHandle']
@@ -78,7 +78,7 @@ class Service
                         }
                     }
                 } catch (AwsException $e) {
-                    echo "Error polling queue: " . $e->getAwsErrorMessage() . "\n";
+                    Logger::exception(message: "Error polling queue", exception: $e);
                 }
             }
         });
@@ -121,6 +121,6 @@ class Service
         $socket = new SocketServer('0.0.0.0:80', [], null);
         $server->listen($socket);
 
-        echo "HTTP server running at http://localhost\n";
+        Logger::info("HTTP server running at http://localhost");
     }
 }

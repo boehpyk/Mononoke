@@ -43,7 +43,7 @@ class SnsService
             $result = $this->sns->createTopic(['Name' => $topicName]);
             return $result['TopicArn'];
         } catch (AwsException $e) {
-            throw new MononokeException("Failed to create SNS topic '{$topicName}': " . $e->getAwsErrorMessage(), $e->getCode(), $e);
+            throw new MononokeException("Failed to create SNS topic '{$topicName}': " . $e->getMessage(), $e->getCode(), $e);
         } catch (\Throwable $e) {
             throw new MononokeException("Unexpected error while creating SNS topic '{$topicName}': " . $e->getMessage(), $e->getCode(), $e);
         }

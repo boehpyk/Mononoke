@@ -33,7 +33,7 @@ class AwsSnsSqs
             $snsService = new SnsService();
             $topicArn = $snsService->create(topicName: $this->topicName);
         } catch (MononokeException $e) {
-            throw new MononokeException("Failed setting up SNS: {$e->getMessage()}");
+            throw new MononokeException($e->getMessage());
         }
 
         try {
