@@ -6,6 +6,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Kekke\Mononoke\Attributes\AwsSnsSqs;
 use Kekke\Mononoke\Attributes\Http;
+use Kekke\Mononoke\Enums\HttpMethod;
 use Kekke\Mononoke\Helpers\Logger;
 use Kekke\Mononoke\Service as MononokeService;
 use Kekke\Mononoke\Transport\AwsSns;
@@ -28,7 +29,7 @@ class Service extends MononokeService
         Logger::info("Received message in another-topic!", ["Message" => $message]);
     }
 
-    #[Http('GET', '/health')]
+    #[Http(HttpMethod::GET, '/health')]
     public function status()
     {
         return "OK";

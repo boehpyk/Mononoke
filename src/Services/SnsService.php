@@ -9,10 +9,16 @@ use Kekke\Mononoke\Models\AwsCredentials;
 use Aws\Exception\AwsException;
 use Kekke\Mononoke\Exceptions\MononokeException;
 
+/**
+ * SNS Service
+ */
 class SnsService
 {
     private SnsClient $sns;
 
+    /**
+     * Creates a new SnsClient using aws credentials from env variables if not provided
+     */
     public function __construct(?SnsClient $snsClient = null)
     {
         if ($snsClient !== null) {
@@ -37,6 +43,9 @@ class SnsService
         }
     }
 
+    /**
+     * Creates a topic
+     */
     public function create(string $topicName): string
     {
         try {
@@ -49,6 +58,9 @@ class SnsService
         }
     }
 
+    /**
+     * Creates a notification on a topic
+     */
     public function notify(string $topicArn, string|array $message): void
     {
         try {
@@ -63,12 +75,15 @@ class SnsService
         } catch (\JsonException $e) {
             throw new MononokeException("Failed to encode message to JSON: " . $e->getMessage(), $e->getCode(), $e);
         } catch (AwsException $e) {
-            throw new MononokeException("Failed to publish message to SNS: " . $e->getAwsErrorMessage(), $e->getCode(), $e);
+            throw new MononokeException("Failed to publish message to SNS: " . $e->getMessage(), $e->getCode(), $e);
         } catch (\Throwable $e) {
             throw new MononokeException("Unexpected error while publishing message: " . $e->getMessage(), $e->getCode(), $e);
         }
     }
 
+    /**
+     * Subscribes a topic to a queue arn
+     */
     public function subscribe(string $topicArn, string $queueArn): void
     {
         try {
@@ -79,7 +94,7 @@ class SnsService
                 'ReturnSubscriptionArn' => true
             ]);
         } catch (AwsException $e) {
-            throw new MononokeException("Failed to setup SQS or subscription: " . $e->getAwsErrorMessage());
+            throw new MononokeException("Failed to setup SQS or subscription: " . $e->getMessage());
         }
     }
 }

@@ -6,12 +6,15 @@ namespace Kekke\Mononoke\Attributes;
 
 use Attribute;
 use Aws\Exception\AwsException;
-use Aws\Sns\SnsClient;
-use Aws\Sqs\SqsClient;
 use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Services\SnsService;
 use Kekke\Mononoke\Services\SqsService;
 
+/**
+ * AwsSnsSqs attribute
+ * This attribute will create a SNS topic, SQS queue and subscribe the queue to the topic
+ * Mononoke will create a EventLoop via ReactPHP to poll from SQS if registered.
+ */
 #[Attribute(Attribute::TARGET_METHOD)]
 class AwsSnsSqs
 {
@@ -26,9 +29,12 @@ class AwsSnsSqs
         $this->queueName = $queueName;
     }
 
+    /**
+     * This method creates a SNS topic, SQS queue and subscribes the queue to the topic
+     * If the topic or queue exists then none will be created
+     */
     public function setup()
     {
-
         try {
             $snsService = new SnsService();
             $topicArn = $snsService->create(topicName: $this->topicName);

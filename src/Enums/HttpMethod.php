@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Kekke\Mononoke\Enums;
 
+/**
+ * Enum with valid http methods
+ */
 enum HttpMethod: string
 {
     case GET = 'GET';

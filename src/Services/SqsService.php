@@ -10,10 +10,16 @@ use Aws\Sqs\SqsClient;
 use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Exceptions\MononokeInvalidAttributesException;
 
+/**
+ * SQS Service
+ */
 class SqsService
 {
     private SqsClient $sqs;
 
+    /**
+     * Creates a SqsClient based on aws credentials in env variables
+     */
     public function __construct(?SqsClient $sqsClient = null)
     {
         if ($sqsClient !== null) {
@@ -82,6 +88,9 @@ class SqsService
         }
     }
 
+    /**
+     * List attributes from a queue
+     */
     public function getAttributes(string $queueUrl, array $attributeNames, bool $skipInvalidAttributeNames = true): \Aws\Result
     {
 
@@ -95,6 +104,9 @@ class SqsService
         return $attrs;
     }
 
+    /**
+     * Creates a queue
+     */
     public function create(string $queueName): string
     {
         try {

@@ -18,11 +18,19 @@ use React\Http\Message\Response;
 
 use function FastRoute\simpleDispatcher;
 
+/**
+ * Main entrypoint for a Mononoke service
+ * Extend this Service class and then use the method `run` to start the service
+ */
 class Service
 {
     protected SqsClient $sqs;
     protected SnsClient $sns;
 
+    /**
+     * Starts the service
+     * This method will create the HTTP server and SQS poller if needed
+     */
     public function run()
     {
         $region = getenv('AWS_REGION') ?: 'us-east-1';

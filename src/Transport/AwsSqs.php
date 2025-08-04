@@ -12,15 +12,24 @@ use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Models\AwsCredentials;
 use Throwable;
 
+/**
+ * AwsSqs helper methods
+ */
 class AwsSqs
 {
     private static ?SqsClient $client = null;
 
+    /**
+     * Set a SqsClient
+     */
     public static function setSqsClient(SqsClient $client): void
     {
         self::$client = $client;
     }
 
+    /**
+     * Publish to a sqs queue
+     */
     public static function publish(string $queueName, array $data): mixed
     {
         try {

@@ -13,18 +13,24 @@ use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Models\AwsCredentials;
 use Throwable;
 
-use function React\Async\async;
-use function React\Async\await;
-
+/**
+ * AwsSns helper methods
+ */
 class AwsSns
 {
     private static ?SnsClient $client = null;
 
+    /**
+     * Set sns client to use
+     */
     public static function setSnsClient(SnsClient $client): void
     {
         self::$client = $client;
     }
 
+    /**
+     * Publish to a sns topic
+     */
     public static function publish(string $topic, array $data): mixed
     {
         try {
