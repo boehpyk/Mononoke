@@ -2,7 +2,6 @@
 
 use PHPUnit\Framework\TestCase;
 use Aws\Sns\SnsClient;
-use Aws\Result;
 use Aws\Exception\AwsException;
 use Kekke\Mononoke\Services\SnsService;
 use Kekke\Mononoke\Exceptions\MononokeException;
