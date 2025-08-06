@@ -104,6 +104,9 @@ class SqsService
         return $attrs;
     }
 
+    /**
+     * Adds a policy to allow sns to send messages to the sqs queue
+     */
     public function allowSnsToSendMessagesToQueue(string $queueUrl, string $queueArn, string $topicArn): void
     {
         $policy = [
@@ -124,13 +127,14 @@ class SqsService
             ],
         ];
 
-        $sqsService = new SqsService();
-
-        $sqsService->setAttributes(queueUrl: $queueUrl, attributes: [
+        $this->setAttributes(queueUrl: $queueUrl, attributes: [
             'Policy' => json_encode($policy),
         ]);
     }
 
+    /**
+     * Sets a queues attributes
+     */
     public function setAttributes(string $queueUrl, array $attributes): void
     {
         try {
