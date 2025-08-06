@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Aws\Exception\AwsException;
 use Aws\Result;
 use Aws\Sns\SnsClient;
 use Kekke\Mononoke\Exceptions\MononokeException;
@@ -23,37 +24,51 @@ final class AwsSnsTest extends TestCase
 
     public function testSnsPublishSuccess(): void
     {
-        $this->mockClient->expects($this->once())
+        $this->mockClient->expects($this->exactly(2))
             ->method('__call')
-            ->with(
-                'publish',
-                [[
-                    'TopicArn' => 'arn:aws:sns:localstack:test-topic',
-                    'Message' => '{"msg":"Hello"}'
-                ]]
-            )
-            ->willReturn(resolve(new Result(['MessageId' => '123'])));
+            ->willReturnCallback(function ($method, $args) {
+                if ($method === 'createTopic' && isset($args[0]['Name'])) {
+                    return new Result(['TopicArn' => 'arn:aws:sns:localstack:test-topic']);
+                }
+
+                if ($method === 'publish' && isset($args[0]['TopicArn'])) {
+                    return new Result(['MessageId' => '123']);
+                }
+
+                throw new Exception("Unexpected method call: $method");
+            });
 
         AwsSns::setSnsClient($this->mockClient);
         AwsSns::publish('arn:aws:sns:localstack:test-topic', ['msg' => 'Hello']);
     }
 
-    public function testSnsPublishFailure(): void
+    public function testSnsPublishFailureThrowsMononokeException(): void
     {
-        $this->mockClient->expects($this->once())
+        $this->mockClient->expects($this->exactly(2))
             ->method('__call')
-            ->with(
-                'publish',
-                [[
-                    'TopicArn' => 'arn:aws:sns:localstack:test-topic',
-                    'Message' => '{"msg":"Error"}'
-                ]]
-            )
-            ->willReturn(reject(new Exception('Publish failed')));
+            ->willReturnCallback(function ($method, $args) {
+                if ($method === 'createTopic' && isset($args[0]['Name'])) {
+                    return new Result(['TopicArn' => 'arn:aws:sns:localstack:test-topic']);
+                }
 
-        $this->expectException(MononokeException::class);
+                if ($method === 'publish') {
+                    // Simulate AWS SDK throwing an exception on publish
+                    throw new AwsException(
+                        'Simulated publish failure',
+                        $this->createMock(\Aws\CommandInterface::class)
+                    );
+                }
 
-        AwsSns::publish('arn:aws:sns:localstack:test-topic', ['msg' => 'Error']);
+                throw new \Exception("Unexpected method call: $method");
+            });
+
+        AwsSns::setSnsClient($this->mockClient);
+
+        $this->expectException(\Kekke\Mononoke\Exceptions\MononokeException::class);
+        $this->expectExceptionMessage('AWS SNS publish failed');
+
+        // Call your method, which should throw
+        AwsSns::publish('test-topic', ['msg' => 'Hello']);
     }
 
     public function testSnsPublishThrowsOnInvalidJson(): void

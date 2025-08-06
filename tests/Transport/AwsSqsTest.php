@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Aws\Exception\AwsException;
 use Aws\Result;
 use Aws\Sqs\SqsClient;
 use Kekke\Mononoke\Exceptions\MononokeException;
@@ -27,7 +28,7 @@ final class AwsSqsTest extends TestCase
             ->expects($this->exactly(2))
             ->method('__call')
             ->willReturnCallback(function ($method, $args) {
-                if ($method === 'getQueueUrlAsync' && $args[0] === ['QueueName' => 'test']) {
+                if ($method === 'getQueueUrl' && $args[0] === ['QueueName' => 'test']) {
                     return new Result(['QueueUrl' => 'https://sqs.local/queue/test']);
                 }
 
@@ -62,11 +63,14 @@ final class AwsSqsTest extends TestCase
                         'MessageBody' => '{"msg":"Error"}'
                     ]
                 ) {
-                    return reject(new \Exception('Publish failed'));
+                    throw new AwsException(
+                        'Simulated publish failure',
+                        $this->createMock(\Aws\CommandInterface::class)
+                    );
                 }
 
                 if (
-                    $method === 'getQueueUrlAsync' &&
+                    $method === 'getQueueUrl' &&
                     $args[0] === ['QueueName' => 'test']
                 ) {
                     return new Result(['QueueUrl' => 'https://sqs.local/queue/test']);
@@ -76,7 +80,7 @@ final class AwsSqsTest extends TestCase
             });
 
         $this->expectException(MononokeException::class);
-        $this->expectExceptionMessage('Unexpected error during SQS publish: Publish failed');
+        $this->expectExceptionMessage('AWS SQS publish failed');
 
         AwsSqs::publish('test', ['msg' => 'Error']);
     }

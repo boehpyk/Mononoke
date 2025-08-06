@@ -49,7 +49,6 @@ class AwsSqs
             $result = $client->getQueueUrl(['QueueName' => $queueName]);
             $queueUrl = $result->get('QueueUrl');
 
-
             return $client->sendMessage([
                 'QueueUrl'    => $queueUrl,
                 'MessageBody' => $payload,

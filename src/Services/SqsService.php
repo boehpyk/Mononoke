@@ -138,12 +138,33 @@ class SqsService
     public function setAttributes(string $queueUrl, array $attributes): void
     {
         try {
-            $this->sqs->setQueueAttributes([
+            $result = $this->sqs->setQueueAttributes([
                 'QueueUrl' => $queueUrl,
                 'Attributes' => $attributes,
             ]);
+
+            // AWS SDK returns an empty Result object on success (HTTP 200 with no body)
+            if (!empty($result->toArray())) {
+                throw new MononokeException("Unexpected response when setting attributes on queue: {$queueUrl}");
+            }
         } catch (AwsException $e) {
-            throw new MononokeException("Failed to set queue attributes: {$e->getMessage()}", $e->getCode(), $e);
+            $errorCode = $e->getAwsErrorCode();
+
+            $knownErrors = [
+                'InvalidAddress' => 'The specified queue ID is invalid.',
+                'InvalidAttributeName' => 'The specified attribute does not exist.',
+                'InvalidAttributeValue' => 'A queue attribute value is invalid.',
+                'InvalidSecurity' => 'The request was not made over HTTPS or did not use SigV4.',
+                'OverLimit' => 'This action violates a limit (e.g., too many permissions or inflight messages).',
+                'QueueDoesNotExist' => 'The queue does not exist or the QueueUrl is incorrect.',
+                'RequestThrottled' => 'Request was throttled - too many requests.',
+                'UnsupportedOperation' => 'Unsupported operation attempted on the queue.',
+            ];
+
+            $message = $knownErrors[$errorCode]
+                ?? "Failed to set queue attributes: {$e->getMessage()}";
+
+            throw new MononokeException($message, $e->getCode(), $e);
         }
     }
 

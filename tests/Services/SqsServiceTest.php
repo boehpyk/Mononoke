@@ -11,6 +11,7 @@ use Aws\Sqs\SqsClient;
 use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Exceptions\MononokeInvalidAttributesException;
 use Kekke\Mononoke\Services\SqsService;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestInterface;
 
@@ -93,7 +94,7 @@ class SqsServiceTest extends TestCase
         $this->assertSame($expectedResult, $result);
     }
 
-    public function testSetAttributesSuccess(): void
+    public function testSetAttributesSuccessReturnsEmptyResult(): void
     {
         $this->mockSqsClient->expects($this->once())
             ->method('__call')
@@ -101,24 +102,66 @@ class SqsServiceTest extends TestCase
                 'QueueUrl' => 'https://example.com/queue',
                 'Attributes' => ['Policy' => '{"foo":"bar"}']
             ]])
-            ->willReturn(new Result());
+            ->willReturn(new Result([])); // ✅ Empty response (success)
 
         $service = new SqsService($this->mockSqsClient);
         $service->setAttributes('https://example.com/queue', ['Policy' => '{"foo":"bar"}']);
-        $this->assertTrue(true); // If no exception, it's successful
+
+        $this->assertTrue(true); // No exception means success
     }
 
-    public function testSetAttributesThrowsMononokeException(): void
+    public function testSetAttributesThrowsOnUnexpectedNonEmptyResult(): void
     {
         $this->mockSqsClient->expects($this->once())
             ->method('__call')
-            ->with('setQueueAttributes')
-            ->willThrowException(new AwsException('Denied', $this->createMock(CommandInterface::class)));
+            ->willReturn(new Result(['Unexpected' => 'value'])); // ❌ Should not happen
 
         $this->expectException(MononokeException::class);
+        $this->expectExceptionMessage('Unexpected response when setting attributes on queue');
 
         $service = new SqsService($this->mockSqsClient);
-        $service->setAttributes('https://example.com/queue', ['Policy' => 'x']);
+        $service->setAttributes('https://example.com/queue', ['Policy' => '{"foo":"bar"}']);
+    }
+
+    #[DataProvider('awsErrorProvider')]
+    public function testSetAttributesHandlesKnownAwsErrorCodes(string $errorCode, string $expectedMessage): void
+    {
+        $this->mockSqsClient->expects($this->once())
+            ->method('__call')
+            ->willThrowException($this->createAwsException($errorCode));
+
+        $this->expectException(MononokeException::class);
+        $this->expectExceptionMessage($expectedMessage);
+
+        $service = new SqsService($this->mockSqsClient);
+        $service->setAttributes('https://example.com/queue', ['Policy' => '{"foo":"bar"}']);
+    }
+
+    public static function awsErrorProvider(): array
+    {
+        return [
+            ['InvalidAddress', 'The specified queue ID is invalid.'],
+            ['InvalidAttributeName', 'The specified attribute does not exist.'],
+            ['InvalidAttributeValue', 'A queue attribute value is invalid.'],
+            ['InvalidSecurity', 'The request was not made over HTTPS or did not use SigV4.'],
+            ['OverLimit', 'This action violates a limit (e.g., too many permissions or inflight messages).'],
+            ['QueueDoesNotExist', 'The queue does not exist or the QueueUrl is incorrect.'],
+            ['RequestThrottled', 'Request was throttled - too many requests.'],
+            ['UnsupportedOperation', 'Unsupported operation attempted on the queue.'],
+        ];
+    }
+
+    public function testSetAttributesHandlesUnknownAwsErrorCode(): void
+    {
+        $this->mockSqsClient->expects($this->once())
+            ->method('__call')
+            ->willThrowException($this->createAwsException('SomethingWeird'));
+
+        $this->expectException(MononokeException::class);
+        $this->expectExceptionMessage('Failed to set queue attributes');
+
+        $service = new SqsService($this->mockSqsClient);
+        $service->setAttributes('https://example.com/queue', ['Policy' => '{"foo":"bar"}']);
     }
 
     public function testAllowSnsToSendMessagesToQueue(): void
@@ -141,5 +184,25 @@ class SqsServiceTest extends TestCase
             'arn:aws:sqs:us-east-1:123456789012:test',
             'arn:aws:sns:us-east-1:123456789012:topic'
         );
+    }
+
+    private function createAwsException(string $awsErrorCode): AwsException
+    {
+        // Create a dummy CommandInterface mock needed by AwsException constructor
+        $commandMock = $this->createMock(\Aws\CommandInterface::class);
+
+        // Create real AwsException with message and dummy command
+        $exception = new AwsException('Simulated error', $commandMock);
+
+        // Now create a partial mock of AwsException that only overrides getAwsErrorCode()
+        $mock = $this->getMockBuilder(AwsException::class)
+            ->setConstructorArgs(['Simulated error', $commandMock])
+            ->onlyMethods(['getAwsErrorCode'])
+            ->getMock();
+
+        // Override getAwsErrorCode to return our desired AWS error code
+        $mock->method('getAwsErrorCode')->willReturn($awsErrorCode);
+
+        return $mock;
     }
 }
