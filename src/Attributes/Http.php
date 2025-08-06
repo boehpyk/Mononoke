@@ -9,9 +9,11 @@ use Kekke\Mononoke\Enums\HttpMethod;
 use Kekke\Mononoke\Exceptions\MononokeException;
 
 /**
- * Http attribute
- * This attribute creates a HTTP endpoint
- * Mononoke will create a webserver via ReactPHP if an endpoint has been registered
+ * Attribute to define an HTTP endpoint.
+ *
+ * When applied to a method, this attribute registers an HTTP route using the specified
+ * HTTP method and path. If at least one endpoint is registered, Mononoke will initialize
+ * a web server via ReactPHP to handle incoming HTTP requests.
  */
 #[Attribute(Attribute::TARGET_METHOD)]
 class Http

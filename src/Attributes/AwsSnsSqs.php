@@ -11,9 +11,12 @@ use Kekke\Mononoke\Services\SnsService;
 use Kekke\Mononoke\Services\SqsService;
 
 /**
- * AwsSnsSqs attribute
- * This attribute will create a SNS topic, SQS queue and subscribe the queue to the topic
- * Mononoke will create a EventLoop via ReactPHP to poll from SQS if registered.
+ * Attribute to configure AWS SNS and SQS integration.
+ *
+ * When applied to a method, this attribute ensures that the specified SNS topic
+ * and SQS queue are created (if they do not already exist) and that the queue
+ * is subscribed to the topic. If registered with Mononoke, an event loop will be
+ * initialized via ReactPHP to continuously poll messages from the SQS queue.
  */
 #[Attribute(Attribute::TARGET_METHOD)]
 class AwsSnsSqs
@@ -57,6 +60,11 @@ class AwsSnsSqs
                 throw new MononokeException("Missing Queue Attributes for queue: {$this->queueUrl}");
             }
 
+            $sqsService->allowSnsToSendMessagesToQueue(
+                queueUrl: $this->queueUrl,
+                queueArn: $queueAttributes['Attributes']['QueueArn'],
+                topicArn: $topicArn
+            );
             $snsService->subscribe(topicArn: $topicArn, queueArn: $queueAttributes['Attributes']['QueueArn']);
         } catch (AwsException $e) {
             throw new MononokeException("Failed to setup subscription: " . $e->getMessage());

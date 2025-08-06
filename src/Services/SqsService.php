@@ -104,6 +104,45 @@ class SqsService
         return $attrs;
     }
 
+    public function allowSnsToSendMessagesToQueue(string $queueUrl, string $queueArn, string $topicArn): void
+    {
+        $policy = [
+            'Version' => '2012-10-17',
+            'Statement' => [
+                [
+                    'Sid' => 'Allow-SNS-SendMessage',
+                    'Effect' => 'Allow',
+                    'Principal' => ['Service' => 'sns.amazonaws.com'],
+                    'Action' => 'SQS:SendMessage',
+                    'Resource' => $queueArn,
+                    'Condition' => [
+                        'ArnEquals' => [
+                            'aws:SourceArn' => $topicArn,
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $sqsService = new SqsService();
+
+        $sqsService->setAttributes(queueUrl: $queueUrl, attributes: [
+            'Policy' => json_encode($policy),
+        ]);
+    }
+
+    public function setAttributes(string $queueUrl, array $attributes): void
+    {
+        try {
+            $this->sqs->setQueueAttributes([
+                'QueueUrl' => $queueUrl,
+                'Attributes' => $attributes,
+            ]);
+        } catch (AwsException $e) {
+            throw new MononokeException("Failed to set queue attributes: {$e->getMessage()}", $e->getCode(), $e);
+        }
+    }
+
     /**
      * Creates a queue
      */
