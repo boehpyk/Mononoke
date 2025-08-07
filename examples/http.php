@@ -21,6 +21,3 @@ class Service extends MononokeService
         return "Restarting";
     }
 }
-
-$service = new Service();
-$service->run();

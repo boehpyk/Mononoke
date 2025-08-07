@@ -19,6 +19,7 @@
             "Kekke\\Mononoke\\": "src/"
         }
     },
+    "bin": ["src/bin/mononoke.php"],
     "authors": [
         {
             "name": "Henric Johansson",

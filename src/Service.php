@@ -9,12 +9,14 @@ use Aws\Sns\SnsClient;
 use Aws\Sqs\SqsClient;
 use FastRoute\RouteCollector;
 use Kekke\Mononoke\Attributes\AwsSnsSqs;
+use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Helpers\Logger;
 use ReflectionClass;
 use React\EventLoop\Loop;
 use React\Http\HttpServer;
 use React\Socket\SocketServer;
 use React\Http\Message\Response;
+use RuntimeException;
 
 use function FastRoute\simpleDispatcher;
 
@@ -126,9 +128,14 @@ class Service
             return new Response(500, ['Content-Type' => 'text/plain'], 'Unexpected error');
         });
 
-        $socket = new SocketServer('0.0.0.0:80', [], null);
-        $server->listen($socket);
+        try {
+            $socket = new SocketServer('0.0.0.0:80', [], null);
+            $server->listen($socket);
+        } catch (RuntimeException $e) {
+            Logger::exception("Unable to start http server: {$e->getMessage()}", $e);
+            throw new MononokeException("Unable to start http server: {$e->getMessage()}");
+        }
 
-        Logger::info("HTTP server running at http://localhost");
+        Logger::info("Mononoke framework up and running!");
     }
 }
