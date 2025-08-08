@@ -9,6 +9,7 @@ use Aws\Sns\SnsClient;
 use Aws\Sqs\SqsClient;
 use FastRoute\RouteCollector;
 use Kekke\Mononoke\Attributes\AwsSnsSqs;
+use Kekke\Mononoke\Attributes\Schedule;
 use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Helpers\Logger;
 use ReflectionClass;
@@ -37,7 +38,7 @@ class Service
     {
         $region = getenv('AWS_REGION') ?: 'us-east-1';
         $endpoint = getenv('AWS_ENDPOINT') ?: 'http://localhost:4566';
-
+        $reflector = new ReflectionClass($this);
         $this->sqs = new SqsClient([
             'region' => $region,
             'version' => 'latest',
@@ -48,8 +49,27 @@ class Service
             ]
         ]);
 
+        // Setup scheduler
+        $scheduleInstances = [];
+
+        foreach ($reflector->getMethods() as $method) {
+            foreach($method->getAttributes(Schedule::class) as $attr) {
+                $instance = $attr->newInstance();
+                $instance->setInvokeMethod([$this, $method->getName()]);
+
+                $scheduleInstances[] = $instance;
+            }
+        }
+
+        Loop::addPeriodicTimer(0, function () use ($scheduleInstances) {
+            foreach ($scheduleInstances as $schedule) {
+                if ($schedule->shouldRun()) {
+                    $schedule->invoke();
+                }
+            }
+        });
+
         // Setup queue map
-        $reflector = new ReflectionClass($this);
         $queueMap = [];
 
         foreach ($reflector->getMethods() as $method) {
