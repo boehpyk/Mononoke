@@ -12,6 +12,10 @@ use Kekke\Mononoke\Attributes\AwsSnsSqs;
 use Kekke\Mononoke\Attributes\Schedule;
 use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Helpers\Logger;
+use Kekke\Mononoke\Scheduling\ScheduledInvoker;
+use Kekke\Mononoke\Scheduling\SchedulerEvaluator;
+use Kekke\Mononoke\Scheduling\ScheduleState;
+use Kekke\Mononoke\Scheduling\SystemClock;
 use ReflectionClass;
 use React\EventLoop\Loop;
 use React\Http\HttpServer;
@@ -50,21 +54,32 @@ class Service
         ]);
 
         // Setup scheduler
-        $scheduleInstances = [];
+        $clock = new SystemClock();
+        $evaluator = new SchedulerEvaluator($clock);
+
+        $scheduleEntries = [];
 
         foreach ($reflector->getMethods() as $method) {
-            foreach($method->getAttributes(Schedule::class) as $attr) {
-                $instance = $attr->newInstance();
-                $instance->setInvokeMethod([$this, $method->getName()]);
+            foreach ($method->getAttributes(Schedule::class) as $attr) {
+                /** @var Schedule $scheduleMeta */
+                $scheduleMeta = $attr->newInstance();
 
-                $scheduleInstances[] = $instance;
+                $state = new ScheduleState();
+                $invoker = new ScheduledInvoker($state, $clock);
+                $invoker->setCallable([$this, $method->getName()]);
+
+                $scheduleEntries[] = [
+                    'meta'    => $scheduleMeta,
+                    'state'   => $state,
+                    'invoker' => $invoker,
+                ];
             }
         }
 
-        Loop::addPeriodicTimer(0, function () use ($scheduleInstances) {
-            foreach ($scheduleInstances as $schedule) {
-                if ($schedule->shouldRun()) {
-                    $schedule->invoke();
+        Loop::addPeriodicTimer(0, function () use ($scheduleEntries, $evaluator) {
+            foreach ($scheduleEntries as $entry) {
+                if ($evaluator->shouldRun($entry['meta'], $entry['state'])) {
+                    $entry['invoker']->invoke();
                 }
             }
         });

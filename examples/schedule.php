@@ -23,7 +23,7 @@ class Service extends MononokeService
         Logger::info("Ran hourly");
     }
 
-    #[Schedule(Scheduler::HourlyAt, invokeAtMinute: 55, invokeAtSecond: 0)]
+    #[Schedule(Scheduler::HourlyAt, invokeAtMinute: 12, invokeAtSecond: 10)]
     public function hourAt()
     {
         Logger::info("Ran hourAt 55:00");
@@ -35,15 +35,15 @@ class Service extends MononokeService
         Logger::info("Ran minuteAt 30");
     }
 
-    // #[Schedule(Scheduler::EveryMinute, invokeImmediately: true)]
-    // public function minute()
-    // {
-    //     Logger::info("Ran minute");
-    // }
+    #[Schedule(Scheduler::EveryMinute, invokeImmediately: true)]
+    public function minute()
+    {
+        Logger::info("Ran minute");
+    }
 
-    // #[Schedule(Scheduler::EverySecond, invokeImmediately: true)]
-    // public function second()
-    // {
-    //     Logger::info("Ran second");
-    // }
+    #[Schedule(Scheduler::EverySecond, invokeImmediately: true)]
+    public function second()
+    {
+        Logger::info("Ran second");
+    }
 }
