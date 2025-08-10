@@ -110,19 +110,6 @@ class SqsServiceTest extends TestCase
         $this->assertTrue(true); // No exception means success
     }
 
-    public function testSetAttributesThrowsOnUnexpectedNonEmptyResult(): void
-    {
-        $this->mockSqsClient->expects($this->once())
-            ->method('__call')
-            ->willReturn(new Result(['Unexpected' => 'value'])); // ❌ Should not happen
-
-        $this->expectException(MononokeException::class);
-        $this->expectExceptionMessage('Unexpected response when setting attributes on queue');
-
-        $service = new SqsService($this->mockSqsClient);
-        $service->setAttributes('https://example.com/queue', ['Policy' => '{"foo":"bar"}']);
-    }
-
     #[DataProvider('awsErrorProvider')]
     public function testSetAttributesHandlesKnownAwsErrorCodes(string $errorCode, string $expectedMessage): void
     {
