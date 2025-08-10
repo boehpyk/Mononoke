@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 final class AwsSqsTest extends TestCase
 {
-    private SqsClient $mockClient;
+    private SqsClient|\PHPUnit\Framework\MockObject\MockObject $mockClient;
 
     protected function setUp(): void
     {

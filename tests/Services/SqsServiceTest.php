@@ -13,7 +13,6 @@ use Kekke\Mononoke\Exceptions\MononokeInvalidAttributesException;
 use Kekke\Mononoke\Services\SqsService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\RequestInterface;
 
 class SqsServiceTest extends TestCase
 {
@@ -106,8 +105,6 @@ class SqsServiceTest extends TestCase
 
         $service = new SqsService($this->mockSqsClient);
         $service->setAttributes('https://example.com/queue', ['Policy' => '{"foo":"bar"}']);
-
-        $this->assertTrue(true); // No exception means success
     }
 
     #[DataProvider('awsErrorProvider')]
@@ -124,6 +121,9 @@ class SqsServiceTest extends TestCase
         $service->setAttributes('https://example.com/queue', ['Policy' => '{"foo":"bar"}']);
     }
 
+    /**
+     * @return array<int, list<string>>
+     */
     public static function awsErrorProvider(): array
     {
         return [

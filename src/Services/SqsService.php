@@ -44,6 +44,9 @@ class SqsService
         }
     }
 
+    /**
+     * @param array<string> $attributeNames
+     */
     private function validateAttributeNames(array &$attributeNames, bool $skipInvalidAttributeNames): void
     {
         $listOfInvalidAttributes = [];
@@ -90,6 +93,8 @@ class SqsService
 
     /**
      * List attributes from a queue
+     * @param array<string> $attributeNames
+     * @return \Aws\Result<mixed>
      */
     public function getAttributes(string $queueUrl, array $attributeNames, bool $skipInvalidAttributeNames = true): \Aws\Result
     {
@@ -134,6 +139,7 @@ class SqsService
 
     /**
      * Sets a queues attributes
+     * @param array<mixed> $attributes
      */
     public function setAttributes(string $queueUrl, array $attributes): void
     {

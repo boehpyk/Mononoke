@@ -41,7 +41,7 @@ class Service
      * Starts the service
      * This method will create the HTTP server and SQS poller if needed
      */
-    public function run()
+    public function run(): void
     {
         $this->setupScheduler();
         $this->setupQueuePoller();

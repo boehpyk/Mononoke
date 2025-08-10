@@ -60,6 +60,7 @@ class SnsService
 
     /**
      * Creates a notification on a topic
+     * @param string|array<mixed> $message
      */
     public function notify(string $topicArn, string|array $message): void
     {

@@ -8,7 +8,7 @@ use Kekke\Mononoke\Exceptions\MissingCallableException;
 
 final class ScheduledInvoker
 {
-    private $callable;
+    private $callable; // @phpstan-ignore-line
 
     public function __construct(
         private readonly ScheduleState $state,

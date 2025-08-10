@@ -56,8 +56,6 @@ final class SchedulerEvaluator
             $this->hasIntervalPassed($prev, '+1 minute', $now) && $this->timeMatchesNow($now, $schedule),
 
             Scheduler::EverySecond => ($prev + 1) <= $now->getTimestamp(),
-
-            default => false,
         };
     }
 

@@ -30,6 +30,7 @@ class AwsSns
 
     /**
      * Publish to a sns topic
+     * @param array<mixed> $data
      */
     public static function publish(string $topic, array $data): mixed
     {

@@ -7,14 +7,12 @@ use Aws\Result;
 use Aws\Sns\SnsClient;
 use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Transport\AwsSns;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-
-use function React\Promise\resolve;
-use function React\Promise\reject;
 
 final class AwsSnsTest extends TestCase
 {
-    private SnsClient $mockClient;
+    private SnsClient|\PHPUnit\Framework\MockObject\MockObject $mockClient;
 
     protected function setUp(): void
     {

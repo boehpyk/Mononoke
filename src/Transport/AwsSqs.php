@@ -29,6 +29,7 @@ class AwsSqs
 
     /**
      * Publish to a sqs queue
+     * @param array<mixed> $data
      */
     public static function publish(string $queueName, array $data): mixed
     {
@@ -45,7 +46,7 @@ class AwsSqs
 
             $client = self::$client;
 
-            /** @var \Aws\Result $result */
+            /** @var \Aws\Result<mixed> $result */
             $result = $client->getQueueUrl(['QueueName' => $queueName]);
             $queueUrl = $result->get('QueueUrl');
 

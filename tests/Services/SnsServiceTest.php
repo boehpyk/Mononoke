@@ -8,15 +8,16 @@ use Kekke\Mononoke\Exceptions\MononokeException;
 
 class SnsServiceTest extends TestCase
 {
-    private SnsClient $mockSnsClient;
+    private SnsClient|\PHPUnit\Framework\MockObject\MockObject $mockSnsClient;
     private SnsService $service;
 
     protected function setUp(): void
     {
-        $this->mockSnsClient = $this->getMockBuilder(SnsClient::class)
+        $mockClient = $this->getMockBuilder(SnsClient::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['__call']) // Important: mock the magic method
             ->getMock();
+        $this->mockSnsClient = $mockClient;
         $this->service = new SnsService($this->mockSnsClient);
     }
 
