@@ -88,7 +88,7 @@ class Service
                     }
 
                     if (is_array($result)) {
-                        return new Response(200, ['Content-Type' => 'application/json'], json_encode($result));
+                        return new Response(200, ['Content-Type' => 'application/json'], json_encode($result, JSON_THROW_ON_ERROR));
                     }
 
                     return new Response(200, ['Content-Type' => 'text/plain'], $result);
