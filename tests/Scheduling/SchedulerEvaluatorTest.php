@@ -113,6 +113,16 @@ final class SchedulerEvaluatorTest extends TestCase
         self::assertTrue($this->evaluator->shouldRun($schedule, $state));
     }
 
+    public function testEveryMinuteRunsEvenIfHourAndMinuteIsSupplied(): void
+    {
+        $schedule = new Schedule(Scheduler::EveryMinuteAt, invokeAtHour: 9, invokeAtMinute: 30, invokeAtSecond: 10);
+        $state = new ScheduleState($this->clock->now()->getTimestamp());
+
+        // Correct time
+        $this->clock->set(new \DateTimeImmutable('2025-08-09T07:01:10+00:00'));
+        self::assertTrue($this->evaluator->shouldRun($schedule, $state));
+    }
+
     public function testAtSchedulesDoNotRunImmediatelyWhenInvokeImmediatelyIsFalse(): void
     {
         $scheduleHourAt = new Schedule(

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Kekke\Mononoke\Scheduling;
@@ -37,25 +38,24 @@ final class SchedulerEvaluator
         // We have a previous invocation timestamp
         return match ($schedule->scheduler) {
             Scheduler::Daily =>
-                $this->hasIntervalPassed($prev, '+1 day', $now),
+            $this->hasIntervalPassed($prev, '+1 day', $now),
 
             Scheduler::DailyAt =>
-                $this->hasIntervalPassed($prev, '+1 day', $now) && $this->timeMatchesNow($now, $schedule),
+            $this->hasIntervalPassed($prev, '+1 day', $now) && $this->timeMatchesNow($now, $schedule),
 
             Scheduler::Hourly =>
-                $this->hasIntervalPassed($prev, '+1 hour', $now),
+            $this->hasIntervalPassed($prev, '+1 hour', $now),
 
             Scheduler::HourlyAt =>
-                $this->hasIntervalPassed($prev, '+1 hour', $now) && $this->timeMatchesNow($now, $schedule),
+            $this->hasIntervalPassed($prev, '+1 hour', $now) && $this->timeMatchesNow($now, $schedule),
 
             Scheduler::EveryMinute =>
-                $this->hasIntervalPassed($prev, '+1 minute', $now),
+            $this->hasIntervalPassed($prev, '+1 minute', $now),
 
             Scheduler::EveryMinuteAt =>
-                $this->hasIntervalPassed($prev, '+1 minute', $now) && $this->timeMatchesNow($now, $schedule),
+            $this->hasIntervalPassed($prev, '+1 minute', $now) && $this->timeMatchesNow($now, $schedule),
 
-            Scheduler::EverySecond =>
-                ($prev + 1) <= $now->getTimestamp(),
+            Scheduler::EverySecond => ($prev + 1) <= $now->getTimestamp(),
 
             default => false,
         };
@@ -74,11 +74,19 @@ final class SchedulerEvaluator
             return false;
         }
 
-        if ($schedule->invokeAtMinute !== null && $schedule->invokeAtMinute !== (int)$now->format('i')) {
+        if (
+            $schedule->invokeAtMinute !== null
+            && $schedule->invokeAtMinute !== (int)$now->format('i')
+            && in_array($schedule->scheduler, [Scheduler::DailyAt, Scheduler::HourlyAt])
+        ) {
             return false;
         }
 
-        if ($schedule->invokeAtHour !== null && $schedule->invokeAtHour !== (int)$now->format('H')) {
+        if (
+            $schedule->invokeAtHour !== null
+            && $schedule->invokeAtHour !== (int)$now->format('H')
+            && in_array($schedule->scheduler, [Scheduler::DailyAt])
+        ) {
             return false;
         }
 
