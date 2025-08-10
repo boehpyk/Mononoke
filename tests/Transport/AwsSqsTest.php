@@ -9,9 +9,6 @@ use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Transport\AwsSqs;
 use PHPUnit\Framework\TestCase;
 
-use function React\Promise\resolve;
-use function React\Promise\reject;
-
 final class AwsSqsTest extends TestCase
 {
     private SqsClient $mockClient;

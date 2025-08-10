@@ -25,7 +25,7 @@ class Framework
 
         foreach (get_declared_classes() as $class) {
             if (is_subclass_of($class, Service::class)) {
-                $service = new $class($args);
+                $service = new $class();
                 self::displayInfo();
                 $service->run();
                 return;
