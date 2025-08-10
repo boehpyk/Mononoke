@@ -43,86 +43,16 @@ class Service
      */
     public function run()
     {
-        $region = getenv('AWS_REGION') ?: 'us-east-1';
-        $endpoint = getenv('AWS_ENDPOINT') ?: 'http://localhost:4566';
+        $this->setupScheduler();
+        $this->setupQueuePoller();
+        $this->setupHttpServer();
+
+        Logger::info("Mononoke framework up and running!");
+    }
+
+    private function setupHttpServer(): void
+    {
         $reflector = new ReflectionClass($this);
-        $this->sqs = new SqsClient([
-            'region' => $region,
-            'version' => 'latest',
-            'endpoint' => $endpoint,
-            'credentials' => [
-                'key' => getenv('AWS_ACCESS_KEY_ID') ?: 'test',
-                'secret' => getenv('AWS_SECRET_ACCESS_KEY') ?: 'test',
-            ]
-        ]);
-
-        // Setup scheduler
-        $clock = new SystemClock();
-        $evaluator = new SchedulerEvaluator($clock);
-
-        $scheduleEntries = [];
-
-        foreach ($reflector->getMethods() as $method) {
-            foreach ($method->getAttributes(Schedule::class) as $attr) {
-                /** @var Schedule $scheduleMeta */
-                $scheduleMeta = $attr->newInstance();
-
-                $state = new ScheduleState();
-                $invoker = new ScheduledInvoker($state, $clock);
-                $invoker->setCallable([$this, $method->getName()]);
-
-                $scheduleEntries[] = [
-                    'meta'    => $scheduleMeta,
-                    'state'   => $state,
-                    'invoker' => $invoker,
-                ];
-            }
-        }
-
-        Loop::addPeriodicTimer(0, function () use ($scheduleEntries, $evaluator) {
-            foreach ($scheduleEntries as $entry) {
-                if ($evaluator->shouldRun($entry['meta'], $entry['state'])) {
-                    $entry['invoker']->invoke();
-                }
-            }
-        });
-
-        // Setup queue map
-        $queueEntries = [];
-
-        foreach ($reflector->getMethods() as $method) {
-            foreach ($method->getAttributes(AwsSnsSqs::class) as $attr) {
-                /** @var AwsSnsSqs $instance */
-                $instance = $attr->newInstance();
-
-                // Setup sns and sqs
-                $installer = new SnsSqsInstaller($instance->topicName, $instance->queueName);
-                $installer->setup();
-                $queueUrl = $installer->getQueueUrl();
-
-                // Setup poller
-                $sqsService = new SqsService();
-                $poller = new SqsPoller($sqsService->getClient(), $queueUrl);
-
-                // Setup invoker
-                $messageHandlerClosure = \Closure::fromCallable([$this, $method->getName()]);
-                $handler = new SqsMessageHandler($messageHandlerClosure);
-
-                $queueEntries[] = ['poller' => $poller, 'handler' => $handler];
-            }
-        }
-
-        Loop::addPeriodicTimer(5, function () use ($queueEntries) {
-            foreach($queueEntries as $queueEntry) {
-                $messages = $queueEntry['poller']->poll();
-
-                foreach ($messages as $message) {
-                    $queueEntry['handler']->handle($message['Body']);
-                    $queueEntry['poller']->delete($message['ReceiptHandle']);
-                }
-            }
-        });
-
         $routes = [];
 
         foreach ($reflector->getMethods() as $method) {
@@ -165,7 +95,79 @@ class Service
             Logger::exception("Unable to start http server: {$e->getMessage()}", $e);
             throw new MononokeException("Unable to start http server: {$e->getMessage()}");
         }
+    }
 
-        Logger::info("Mononoke framework up and running!");
+    private function setupQueuePoller(): void
+    {
+        $reflector = new ReflectionClass($this);
+        $queueEntries = [];
+
+        foreach ($reflector->getMethods() as $method) {
+            foreach ($method->getAttributes(AwsSnsSqs::class) as $attr) {
+                /** @var AwsSnsSqs $instance */
+                $instance = $attr->newInstance();
+
+                // Setup sns and sqs
+                $installer = new SnsSqsInstaller($instance->topicName, $instance->queueName);
+                $installer->setup();
+                $queueUrl = $installer->getQueueUrl();
+
+                // Setup poller
+                $sqsService = new SqsService();
+                $poller = new SqsPoller($sqsService->getClient(), $queueUrl);
+
+                // Setup invoker
+                $messageHandlerClosure = \Closure::fromCallable([$this, $method->getName()]);
+                $handler = new SqsMessageHandler($messageHandlerClosure);
+
+                $queueEntries[] = ['poller' => $poller, 'handler' => $handler];
+            }
+        }
+
+        Loop::addPeriodicTimer(5, function () use ($queueEntries) {
+            foreach ($queueEntries as $queueEntry) {
+                $messages = $queueEntry['poller']->poll();
+
+                foreach ($messages as $message) {
+                    $queueEntry['handler']->handle($message['Body']);
+                    $queueEntry['poller']->delete($message['ReceiptHandle']);
+                }
+            }
+        });
+    }
+
+    private function setupScheduler(): void
+    {
+        $reflector = new ReflectionClass($this);
+
+        $clock = new SystemClock();
+        $evaluator = new SchedulerEvaluator($clock);
+
+        $scheduleEntries = [];
+
+        foreach ($reflector->getMethods() as $method) {
+            foreach ($method->getAttributes(Schedule::class) as $attr) {
+                /** @var Schedule $scheduleMeta */
+                $scheduleMeta = $attr->newInstance();
+
+                $state = new ScheduleState();
+                $invoker = new ScheduledInvoker($state, $clock);
+                $invoker->setCallable([$this, $method->getName()]);
+
+                $scheduleEntries[] = [
+                    'meta'    => $scheduleMeta,
+                    'state'   => $state,
+                    'invoker' => $invoker,
+                ];
+            }
+        }
+
+        Loop::addPeriodicTimer(0, function () use ($scheduleEntries, $evaluator) {
+            foreach ($scheduleEntries as $entry) {
+                if ($evaluator->shouldRun($entry['meta'], $entry['state'])) {
+                    $entry['invoker']->invoke();
+                }
+            }
+        });
     }
 }
