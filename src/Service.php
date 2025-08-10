@@ -82,6 +82,15 @@ class Service
                     $handler = $routeInfo[1];
                     $vars = $routeInfo[2];
                     $result = call_user_func_array($handler, $vars);
+
+                    if ($result instanceof Response) {
+                        return $result;
+                    }
+
+                    if (is_array($result)) {
+                        return new Response(200, ['Content-Type' => 'application/json'], json_encode($result));
+                    }
+
                     return new Response(200, ['Content-Type' => 'text/plain'], $result);
             }
 

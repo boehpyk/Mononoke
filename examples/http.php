@@ -6,6 +6,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Kekke\Mononoke\Attributes\Http;
 use Kekke\Mononoke\Service as MononokeService;
+use React\Http\Message\Response;
 
 class Service extends MononokeService
 {
@@ -15,9 +16,15 @@ class Service extends MononokeService
         return "OK";
     }
 
-    #[Http('POST', '/restart')]
-    public function restart()
+    #[Http('GET', '/json')]
+    public function json()
     {
-        return "Restarting";
+        return ['test' => 'json?'];
+    }
+
+    #[Http('GET', '/custom')]
+    public function custom()
+    {
+        return new Response(201, ['Authorization' => 'Bearer YeaH!'], 'Body');
     }
 }
