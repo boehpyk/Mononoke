@@ -15,11 +15,13 @@ class SqsPoller
     /**
      * Polls messages from sqs queue and returns the messages
      * returns an empty array if no messages are received
+     * 
+     * @return array<mixed>
      */
     public function poll(): array
     {
         try {
-            /** @var \Aws\Result $result */
+            /** @var \Aws\Result<mixed> $result */
             $result = $this->client->receiveMessage([
                 'QueueUrl' => $this->queueUrl,
                 'MaxNumberOfMessages' => 5,

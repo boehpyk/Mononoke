@@ -19,7 +19,7 @@ class Framework
 {
     private static string $version = "0.1.0";
 
-    public static function run(string $file, array $args = []): void
+    public static function run(string $file): void
     {
         require_once $file;
 

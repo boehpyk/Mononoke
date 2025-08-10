@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 
 class SqsServiceTest extends TestCase
 {
+    /** @var SqsClient&\PHPUnit\Framework\MockObject\MockObject */
     private SqsClient|\PHPUnit\Framework\MockObject\MockObject $mockSqsClient;
 
     protected function setUp(): void

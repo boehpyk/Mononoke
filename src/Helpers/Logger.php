@@ -7,6 +7,7 @@ namespace Kekke\Mononoke\Helpers;
 use Monolog\Logger as MonologLogger;
 use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
+use Monolog\Level;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -47,46 +48,61 @@ class Logger
 
     /**
      * Debug level log
+     * @param array<mixed> $context
      */
     public static function debug(string $message, array $context = []): void
     {
         self::init();
+        if (is_null(self::$logger)) return;
+
         self::$logger->debug($message, $context);
     }
 
     /**
      * Info level log
+     * @param array<mixed> $context
      */
     public static function info(string $message, array $context = []): void
     {
         self::init();
+        if (is_null(self::$logger)) return;
+
         self::$logger->info($message, $context);
     }
 
     /**
      * Warning level log
+     * @param array<mixed> $context
      */
     public static function warning(string $message, array $context = []): void
     {
         self::init();
+        if (is_null(self::$logger)) return;
+
         self::$logger->warning($message, $context);
     }
 
     /**
      * Error level log
+     * @param array<mixed> $context
      */
     public static function error(string $message, array $context = []): void
     {
         self::init();
+        if (is_null(self::$logger)) return;
+
         self::$logger->error($message, $context);
     }
 
     /**
      * Exception level log
+     * @param array<mixed> $context
      */
     public static function exception(string $message, Throwable $exception, array $context = []): void
     {
         self::init();
+        if (is_null(self::$logger)) return;
+        
         if (!isset($context['Exception'])) {
             $context['Exception'] = $exception->getMessage();
         }
@@ -95,10 +111,13 @@ class Logger
 
     /**
      * Custom level log
+     * @param array<mixed> $context
      */
-    public static function log(string $level, string $message, array $context = []): void
+    public static function log(Level $level, string $message, array $context = []): void
     {
         self::init();
+        if (is_null(self::$logger)) return;
+        
         self::$logger->log($level, $message, $context);
     }
 }

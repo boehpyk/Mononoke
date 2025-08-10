@@ -1,19 +1,20 @@
-# .github/workflows/phpunit-tests.yml
-
-name: Run PHPUnit Tests
+name: Tests & Static Analysis
 
 on:
   push:
     branches:
       - main
+  pull_request:
 
 jobs:
-  phpunit:
+  setup:
+    name: Setup PHP & Composer Cache
     runs-on: ubuntu-latest
-
+    outputs:
+      composer-cache: ${{ steps.composer-cache.outputs.dir }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup PHP 8.3
         uses: shivammathur/setup-php@v2
@@ -21,8 +22,57 @@ jobs:
           php-version: 8.3
           extensions: mbstring, sockets, json
 
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+  phpunit:
+    name: Run PHPUnit
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Restore composer cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ needs.setup.outputs.composer-cache }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
       - name: Run PHPUnit tests
         run: ./vendor/bin/phpunit tests --colors=always
+
+  phpstan:
+    name: Run PHPStan
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Restore composer cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ needs.setup.outputs.composer-cache }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Run PHPStan
+        run: ./vendor/bin/phpstan analyse src tests --memory-limit=512M --level=8

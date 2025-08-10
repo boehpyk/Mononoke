@@ -117,7 +117,7 @@ class Service
                 $poller = new SqsPoller($sqsService->getClient(), $queueUrl);
 
                 // Setup invoker
-                $messageHandlerClosure = \Closure::fromCallable([$this, $method->getName()]);
+                $messageHandlerClosure = $method->getClosure($this);
                 $handler = new SqsMessageHandler($messageHandlerClosure);
 
                 $queueEntries[] = ['poller' => $poller, 'handler' => $handler];
@@ -152,7 +152,8 @@ class Service
 
                 $state = new ScheduleState();
                 $invoker = new ScheduledInvoker($state, $clock);
-                $invoker->setCallable([$this, $method->getName()]);
+                $closure = $method->getClosure($this);
+                $invoker->setCallable($closure);
 
                 $scheduleEntries[] = [
                     'meta'    => $scheduleMeta,

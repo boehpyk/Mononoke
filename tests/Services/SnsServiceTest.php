@@ -8,6 +8,7 @@ use Kekke\Mononoke\Exceptions\MononokeException;
 
 class SnsServiceTest extends TestCase
 {
+    /** @var SnsClient&\PHPUnit\Framework\MockObject\MockObject */
     private SnsClient|\PHPUnit\Framework\MockObject\MockObject $mockSnsClient;
     private SnsService $service;
 
