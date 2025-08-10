@@ -142,11 +142,6 @@ class SqsService
                 'QueueUrl' => $queueUrl,
                 'Attributes' => $attributes,
             ]);
-
-            // AWS SDK returns an empty Result object on success (HTTP 200 with no body)
-            if (!empty($result->toArray())) {
-                throw new MononokeException("Unexpected response when setting attributes on queue: {$queueUrl}");
-            }
         } catch (AwsException $e) {
             $errorCode = $e->getAwsErrorCode();
 
@@ -184,5 +179,13 @@ class SqsService
         } catch (\Throwable $e) {
             throw new MononokeException("Unexpected error while creating SQS queue '{$queueName}': " . $e->getMessage(), $e->getCode(), $e);
         }
+    }
+
+    /**
+     * Returns the SqsClient
+     */
+    public function getClient(): SqsClient
+    {
+        return $this->sqs;
     }
 }

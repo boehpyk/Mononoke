@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace Kekke\Mononoke;
 
-use Aws\Exception\AwsException;
 use Aws\Sns\SnsClient;
 use Aws\Sqs\SqsClient;
 use FastRoute\RouteCollector;
 use Kekke\Mononoke\Attributes\AwsSnsSqs;
 use Kekke\Mononoke\Attributes\Schedule;
+use Kekke\Mononoke\Aws\SnsSqsInstaller;
+use Kekke\Mononoke\Aws\SqsMessageHandler;
+use Kekke\Mononoke\Aws\SqsPoller;
 use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Helpers\Logger;
 use Kekke\Mononoke\Scheduling\ScheduledInvoker;
 use Kekke\Mononoke\Scheduling\SchedulerEvaluator;
 use Kekke\Mononoke\Scheduling\ScheduleState;
 use Kekke\Mononoke\Scheduling\SystemClock;
+use Kekke\Mononoke\Services\SqsService;
 use ReflectionClass;
 use React\EventLoop\Loop;
 use React\Http\HttpServer;
@@ -85,45 +88,37 @@ class Service
         });
 
         // Setup queue map
-        $queueMap = [];
+        $queueEntries = [];
 
         foreach ($reflector->getMethods() as $method) {
             foreach ($method->getAttributes(AwsSnsSqs::class) as $attr) {
                 /** @var AwsSnsSqs $instance */
                 $instance = $attr->newInstance();
-                $instance->setup();
-                $queueMap[$instance->queueUrl] = $method->getName();
+
+                // Setup sns and sqs
+                $installer = new SnsSqsInstaller($instance->topicName, $instance->queueName);
+                $installer->setup();
+                $queueUrl = $installer->getQueueUrl();
+
+                // Setup poller
+                $sqsService = new SqsService();
+                $poller = new SqsPoller($sqsService->getClient(), $queueUrl);
+
+                // Setup invoker
+                $messageHandlerClosure = \Closure::fromCallable([$this, $method->getName()]);
+                $handler = new SqsMessageHandler($messageHandlerClosure);
+
+                $queueEntries[] = ['poller' => $poller, 'handler' => $handler];
             }
         }
 
-        Loop::addPeriodicTimer(5, function () use ($queueMap) {
-            foreach ($queueMap as $queueUrl => $methodName) {
-                try {
-                    Logger::info("Polling from SQS", ['method' => $methodName, 'queueArn' => $queueUrl]);
-                    $messageHandlerClosure = \Closure::fromCallable([$this, $methodName]);
+        Loop::addPeriodicTimer(5, function () use ($queueEntries) {
+            foreach($queueEntries as $queueEntry) {
+                $messages = $queueEntry['poller']->poll();
 
-                    /** @var \Aws\Result $result */
-                    $result = $this->sqs->receiveMessage([
-                        'QueueUrl' => $queueUrl,
-                        'MaxNumberOfMessages' => 5,
-                        'WaitTimeSeconds' => 0
-                    ]);
-
-                    if (!empty($result['Messages'])) {
-                        foreach ($result['Messages'] as $message) {
-                            $body = json_decode($message['Body'], true);
-
-                            Logger::info("Triggering closure", ['body' => $body]);
-                            $messageHandlerClosure($body['Message']);
-
-                            $this->sqs->deleteMessage([
-                                'QueueUrl' => $queueUrl,
-                                'ReceiptHandle' => $message['ReceiptHandle']
-                            ]);
-                        }
-                    }
-                } catch (AwsException $e) {
-                    Logger::exception(message: "Error polling queue", exception: $e);
+                foreach ($messages as $message) {
+                    $queueEntry['handler']->handle($message['Body']);
+                    $queueEntry['poller']->delete($message['ReceiptHandle']);
                 }
             }
         });
