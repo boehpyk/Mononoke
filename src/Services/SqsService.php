@@ -39,7 +39,7 @@ class SqsService
                     'secret' => $creds->secret,
                 ]
             ]);
-        } catch (AwsException $e) {
+        } catch (\Throwable $e) {
             throw new MononokeException("AWS SDK failed to initialize: " . $e->getMessage());
         }
     }
