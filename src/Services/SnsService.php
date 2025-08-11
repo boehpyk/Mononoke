@@ -7,6 +7,8 @@ namespace Kekke\Mononoke\Services;
 use Aws\Sns\SnsClient;
 use Kekke\Mononoke\Models\AwsCredentials;
 use Aws\Exception\AwsException;
+use Kekke\Mononoke\Aws\AwsClientFactory;
+use Kekke\Mononoke\Enums\ClientType;
 use Kekke\Mononoke\Exceptions\MononokeException;
 
 /**
@@ -26,18 +28,10 @@ class SnsService
             return;
         }
 
-        $creds = AwsCredentials::load();
-
         try {
-            $this->sns = new SnsClient([
-                'region' => $creds->region,
-                'version' => 'latest',
-                'endpoint' => $creds->endpoint,
-                'credentials' => [
-                    'key' => $creds->key,
-                    'secret' => $creds->secret,
-                ]
-            ]);
+            /** @var SnsClient $client */
+            $client = AwsClientFactory::create(ClientType::SNS);
+            $this->sns = $client;
         } catch (\Throwable $e) {
             throw new MononokeException("AWS SDK failed to initialize: " . $e->getMessage());
         }

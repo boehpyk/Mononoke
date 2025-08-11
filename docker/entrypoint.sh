@@ -7,7 +7,7 @@ PID=0
 
 start_script() {
   echo "[Watcher] Starting script..."
-  php "$SCRIPT" &
+  src/bin/mononoke "$SCRIPT" &
   PID=$!
 }
 

@@ -35,6 +35,3 @@ class Service extends MononokeService
         return "OK";
     }
 }
-
-$service = new Service();
-$service->run();

@@ -21,7 +21,7 @@ class AwsCredentials
         $this->key = getenv('AWS_ACCESS_KEY_ID') ?: 'test';
         $this->secret = getenv('AWS_SECRET_ACCESS_KEY') ?: 'test';
         $this->region = getenv('AWS_REGION') ?: 'us-east-1';
-        $this->endpoint = getenv('AWS_ENDPOINT') ?: 'http://localhost:4566';
+        $this->endpoint = getenv('AWS_ENDPOINT_URL') ?: 'http://localhost:4566';
     }
 
     public static function load(): self

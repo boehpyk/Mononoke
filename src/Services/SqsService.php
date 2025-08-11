@@ -7,6 +7,8 @@ namespace Kekke\Mononoke\Services;
 use Kekke\Mononoke\Models\AwsCredentials;
 use Aws\Exception\AwsException;
 use Aws\Sqs\SqsClient;
+use Kekke\Mononoke\Aws\AwsClientFactory;
+use Kekke\Mononoke\Enums\ClientType;
 use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Exceptions\MononokeInvalidAttributesException;
 
@@ -27,18 +29,10 @@ class SqsService
             return;
         }
 
-        $creds = AwsCredentials::load();
-
         try {
-            $this->sqs = new SqsClient([
-                'region' => $creds->region,
-                'version' => 'latest',
-                'endpoint' => $creds->endpoint,
-                'credentials' => [
-                    'key' => $creds->key,
-                    'secret' => $creds->secret,
-                ]
-            ]);
+            /** @var SqsClient $client */
+            $client = AwsClientFactory::create(ClientType::SQS);
+            $this->sqs = $client;
         } catch (\Throwable $e) {
             throw new MononokeException("AWS SDK failed to initialize: " . $e->getMessage());
         }

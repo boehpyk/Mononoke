@@ -9,9 +9,11 @@ use Aws\Sqs\SqsClient;
 use FastRoute\RouteCollector;
 use Kekke\Mononoke\Attributes\AwsSnsSqs;
 use Kekke\Mononoke\Attributes\Schedule;
+use Kekke\Mononoke\Aws\AwsClientFactory;
 use Kekke\Mononoke\Aws\SnsSqsInstaller;
 use Kekke\Mononoke\Aws\SqsMessageHandler;
 use Kekke\Mononoke\Aws\SqsPoller;
+use Kekke\Mononoke\Enums\ClientType;
 use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Helpers\Logger;
 use Kekke\Mononoke\Scheduling\ScheduledInvoker;
@@ -122,8 +124,10 @@ class Service
                 $queueUrl = $installer->getQueueUrl();
 
                 // Setup poller
-                $sqsService = new SqsService();
-                $poller = new SqsPoller($sqsService->getClient(), $queueUrl);
+                
+                /** @var SqsClient $sqsClient */
+                $sqsClient = AwsClientFactory::create(ClientType::SQS);
+                $poller = new SqsPoller($sqsClient, $queueUrl);
 
                 // Setup invoker
                 $messageHandlerClosure = $method->getClosure($this);
