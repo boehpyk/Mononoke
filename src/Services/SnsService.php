@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Kekke\Mononoke\Services;
 
 use Aws\Sns\SnsClient;
-use Kekke\Mononoke\Models\AwsCredentials;
 use Aws\Exception\AwsException;
 use Kekke\Mononoke\Aws\AwsClientFactory;
 use Kekke\Mononoke\Enums\ClientType;

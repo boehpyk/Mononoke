@@ -8,8 +8,9 @@ use Aws\Sdk;
 use Aws\Exception\AwsException;
 use Aws\Sqs\SqsClient;
 use JsonException;
+use Kekke\Mononoke\Aws\AwsClientFactory;
+use Kekke\Mononoke\Enums\ClientType;
 use Kekke\Mononoke\Exceptions\MononokeException;
-use Kekke\Mononoke\Models\AwsCredentials;
 use Throwable;
 
 /**
@@ -64,19 +65,9 @@ class AwsSqs
     private static function getClient(): SqsClient
     {
         if (self::$client === null) {
-            $creds = AwsCredentials::load();
-
-            $sdk = new Sdk([
-                'region' => $creds->region,
-                'version' => 'latest',
-                'endpoint' => $creds->endpoint,
-                'credentials' => [
-                    'key' => $creds->key,
-                    'secret' => $creds->secret,
-                ],
-            ]);
-
-            self::$client = $sdk->createSqs();
+            /** @var SqsClient $client */
+            $client = AwsClientFactory::create(ClientType::SNS);
+            self::$client = $client;
         }
 
         return self::$client;

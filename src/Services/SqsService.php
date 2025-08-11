@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Kekke\Mononoke\Services;
 
-use Kekke\Mononoke\Models\AwsCredentials;
 use Aws\Exception\AwsException;
 use Aws\Sqs\SqsClient;
 use Kekke\Mononoke\Aws\AwsClientFactory;
