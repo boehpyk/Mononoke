@@ -20,7 +20,6 @@ use Kekke\Mononoke\Scheduling\ScheduledInvoker;
 use Kekke\Mononoke\Scheduling\SchedulerEvaluator;
 use Kekke\Mononoke\Scheduling\ScheduleState;
 use Kekke\Mononoke\Scheduling\SystemClock;
-use Kekke\Mononoke\Services\SqsService;
 use ReflectionClass;
 use React\EventLoop\Loop;
 use React\Http\HttpServer;
@@ -47,21 +46,20 @@ class Service
     {
         $this->setupScheduler();
         $this->setupQueuePoller();
-        $this->setupHttpServer();
+        $socket = $this->setupHttpServer();
 
-        pcntl_signal(SIGTERM, function() {
-            Logger::info("Caught SIGTERM, exiting...");
-            exit;
-        });
-        pcntl_signal(SIGINT, function() {
-            Logger::info("Caught SIGINT, exiting...");
-            exit;
-        });
+        $killCommand = function () use ($socket) {
+            $socket->close();
+            Loop::stop();
+        };
+
+        Loop::addSignal(SIGINT, $killCommand);
+        Loop::addSignal(SIGTERM, $killCommand);
 
         Logger::info("Mononoke framework up and running!");
     }
 
-    private function setupHttpServer(): void
+    private function setupHttpServer(): SocketServer
     {
         $reflector = new ReflectionClass($this);
         $routes = [];
@@ -115,6 +113,8 @@ class Service
             Logger::exception("Unable to start http server: {$e->getMessage()}", $e);
             throw new MononokeException("Unable to start http server: {$e->getMessage()}");
         }
+
+        return $socket;
     }
 
     private function setupQueuePoller(): void
