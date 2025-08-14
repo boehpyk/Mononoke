@@ -49,6 +49,15 @@ class Service
         $this->setupQueuePoller();
         $this->setupHttpServer();
 
+        pcntl_signal(SIGTERM, function() {
+            Logger::info("Caught SIGTERM, exiting...");
+            exit;
+        });
+        pcntl_signal(SIGINT, function() {
+            Logger::info("Caught SIGINT, exiting...");
+            exit;
+        });
+
         Logger::info("Mononoke framework up and running!");
     }
 
