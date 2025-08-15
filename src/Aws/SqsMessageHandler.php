@@ -10,6 +10,9 @@ class SqsMessageHandler
 {
     public function __construct(private Closure $closure) {}
 
+    /**
+     * Runs the message handler with the body received
+     */
     public function handle(string $body): void
     {
         ($this->closure)($body);

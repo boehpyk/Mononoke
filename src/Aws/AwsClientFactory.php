@@ -10,6 +10,9 @@ use Kekke\Mononoke\Enums\ClientType;
 
 class AwsClientFactory
 {
+    /**
+     * Create a AwsClient of ClientType
+     */
     public static function create(ClientType $clientType): SnsClient|SqsClient
     {
         $commonConfig = [

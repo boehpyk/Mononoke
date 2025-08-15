@@ -12,6 +12,10 @@ class AttributeScanner
     /** @var array<string, array<class-string, array<object>>> */
     private array $cache = [];
 
+    /**
+     * Constructor for AttributeScanner
+     * Takes a target object and scans all methods of the target and caches the attributes of these methods
+     */
     public function __construct(private readonly object $target)
     {
         $this->cacheAttributes();
