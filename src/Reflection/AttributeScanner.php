@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Kekke\Mononoke\Reflection;
 
 use ReflectionClass;
+use ReflectionMethod;
 
 class AttributeScanner
 {
+    /** @var array<string, array<class-string, array<object>>> */
     private array $cache = [];
 
     public function __construct(private readonly object $target)
@@ -15,18 +17,30 @@ class AttributeScanner
         $this->cacheAttributes();
     }
 
+    /**
+     * @template T of object
+     * @param class-string<T> $attributeClass
+     * @return array<array{method: ReflectionMethod, attributes: array<T>}>
+     */
     public function getMethodsWithAttribute(string $attributeClass): array
     {
-        $result = array_map(function ($attributeGroup, $methodName) use ($attributeClass) {
-            if (isset($attributeGroup[$attributeClass])) {
-                return [
-                    'method' => (new ReflectionClass($this->target))->getMethod($methodName),
-                    'attributes' => $attributeGroup[$attributeClass]
-                ];
-            }
-        }, array_values($this->cache), array_keys($this->cache));
+        $results = [];
 
-        return array_filter($result);
+        foreach ($this->cache as $methodName => $attributeGroup) {
+            if (!isset($attributeGroup[$attributeClass])) {
+                continue;
+            }
+
+            /** @var list<T> $attributes */
+            $attributes = $attributeGroup[$attributeClass];
+
+            $results[] = [
+                'method' => (new ReflectionClass($this->target))->getMethod($methodName),
+                'attributes' => $attributes,
+            ];
+        }
+
+        return $results;
     }
 
     private function cacheAttributes(): void
