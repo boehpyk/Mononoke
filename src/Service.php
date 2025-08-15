@@ -50,8 +50,10 @@ class Service
         $socket = $this->setupHttpServer();
 
         $killCommand = function () use ($socket) {
+            Logger::info("Stopping service");
             $socket->close();
             Loop::stop();
+            Logger::info("Terminated service");
         };
 
         Loop::addSignal(SIGINT, $killCommand);
@@ -81,6 +83,10 @@ class Service
                 $r->addRoute($method, $path, $handler);
             }
         });
+
+        if (count($routes) > 0) {
+            Logger::info("HTTP routes registered", ['number_of_routes' => count($routes)]);
+        }
 
         // Setup HTTP server
         $server = new HttpServer(function (\Psr\Http\Message\ServerRequestInterface $request) use ($dispatcher) {
@@ -148,6 +154,10 @@ class Service
             }
         }
 
+        if (count($queueEntries) > 0) {
+            Logger::info("SQS listeners registered", ['number_of_sqs_listeners' => count($queueEntries)]);
+        }
+
         Loop::addPeriodicTimer(5, function () use ($queueEntries) {
             foreach ($queueEntries as $queueEntry) {
                 $messages = $queueEntry['poller']->poll();
@@ -182,6 +192,10 @@ class Service
                     'invoker' => $invoker,
                 ];
             }
+        }
+
+        if (count($scheduleEntries) > 0) {
+            Logger::info("Schedulers registered", ['number_of_schedulers' => count($scheduleEntries)]);
         }
 
         Loop::addPeriodicTimer(0, function () use ($scheduleEntries, $evaluator) {
