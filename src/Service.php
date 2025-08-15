@@ -16,6 +16,7 @@ use Kekke\Mononoke\Aws\SqsPoller;
 use Kekke\Mononoke\Enums\ClientType;
 use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Helpers\Logger;
+use Kekke\Mononoke\Reflection\AttributeScanner;
 use Kekke\Mononoke\Scheduling\ScheduledInvoker;
 use Kekke\Mononoke\Scheduling\SchedulerEvaluator;
 use Kekke\Mononoke\Scheduling\ScheduleState;
@@ -61,14 +62,17 @@ class Service
 
     private function setupHttpServer(): SocketServer
     {
-        $reflector = new ReflectionClass($this);
-        $routes = [];
+        $scanner = new AttributeScanner($this);
+        $httpMethods = $scanner->getMethodsWithAttribute(\Kekke\Mononoke\Attributes\Http::class);
 
-        foreach ($reflector->getMethods() as $method) {
-            foreach ($method->getAttributes(\Kekke\Mononoke\Attributes\Http::class) as $attr) {
-                /** @var \Kekke\Mononoke\Attributes\Http $instance */
-                $instance = $attr->newInstance();
-                $routes[] = [$instance->method->value, $instance->path, [$this, $method->getName()]];
+        $routes = [];
+        foreach ($httpMethods as $entry) {
+            foreach ($entry['attributes'] as $httpAttr) {
+                $routes[] = [
+                    $httpAttr->method->value,
+                    $httpAttr->path,
+                    [$this, $entry['method']->getName()]
+                ];
             }
         }
 
@@ -119,16 +123,14 @@ class Service
 
     private function setupQueuePoller(): void
     {
-        $reflector = new ReflectionClass($this);
+        $scanner = new AttributeScanner($this);
+        $queueMethods = $scanner->getMethodsWithAttribute(AwsSnsSqs::class);
         $queueEntries = [];
 
-        foreach ($reflector->getMethods() as $method) {
-            foreach ($method->getAttributes(AwsSnsSqs::class) as $attr) {
-                /** @var AwsSnsSqs $instance */
-                $instance = $attr->newInstance();
-
+        foreach ($queueMethods as $entry) {
+            foreach ($entry['attributes'] as $attr) {
                 // Setup sns and sqs
-                $installer = new SnsSqsInstaller($instance->topicName, $instance->queueName);
+                $installer = new SnsSqsInstaller($attr->topicName, $attr->queueName);
                 $installer->setup();
                 $queueUrl = $installer->getQueueUrl();
 
@@ -139,7 +141,7 @@ class Service
                 $poller = new SqsPoller($sqsClient, $queueUrl);
 
                 // Setup invoker
-                $messageHandlerClosure = $method->getClosure($this);
+                $messageHandlerClosure = $entry['method']->getClosure($this);
                 $handler = new SqsMessageHandler($messageHandlerClosure);
 
                 $queueEntries[] = ['poller' => $poller, 'handler' => $handler];
@@ -160,26 +162,23 @@ class Service
 
     private function setupScheduler(): void
     {
-        $reflector = new ReflectionClass($this);
+        $scanner = new AttributeScanner($this);
+        $scheduleMethods = $scanner->getMethodsWithAttribute(Schedule::class);
+        $scheduleEntries = [];
 
         $clock = new SystemClock();
         $evaluator = new SchedulerEvaluator($clock);
 
-        $scheduleEntries = [];
-
-        foreach ($reflector->getMethods() as $method) {
-            foreach ($method->getAttributes(Schedule::class) as $attr) {
-                /** @var Schedule $scheduleMeta */
-                $scheduleMeta = $attr->newInstance();
-
+        foreach($scheduleMethods as $entry) {
+            foreach($entry['attributes'] as $attr) {
                 $state = new ScheduleState();
                 $invoker = new ScheduledInvoker($state, $clock);
-                $closure = $method->getClosure($this);
+                $closure = $entry['method']->getClosure($this);
                 $invoker->setCallable($closure);
 
                 $scheduleEntries[] = [
-                    'meta'    => $scheduleMeta,
-                    'state'   => $state,
+                    'meta' => $attr,
+                    'state' => $state,
                     'invoker' => $invoker,
                 ];
             }
