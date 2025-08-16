@@ -19,7 +19,7 @@ class HttpServerFactory
     /**
      * @param array<array{string, string, callable}> $routes
      */
-    public function create(array $routes): SocketServer
+    public function create(array $routes, int $port): SocketServer
     {
         $dispatcher = simpleDispatcher(function (RouteCollector $r) use ($routes) {
             foreach ($routes as [$method, $path, $handler]) {
@@ -49,7 +49,7 @@ class HttpServerFactory
         });
 
         try {
-            $socket = new SocketServer('0.0.0.0:80');
+            $socket = new SocketServer("0.0.0.0:{$port}");
             $server->listen($socket);
             return $socket;
         } catch (\RuntimeException $e) {

@@ -42,6 +42,7 @@ class HttpServiceTest extends TestCase
     {
         parent::setUp();
         $this->service = new DummyService();
+        $this->service->setPort(8888);
     }
 
     protected function tearDown(): void
@@ -56,15 +57,15 @@ class HttpServiceTest extends TestCase
 
         $browser = new Browser();
 
-        $health = await($browser->get('http://127.0.0.1/health'));
+        $health = await($browser->get('http://127.0.0.1:8888/health'));
         $this->assertSame(200, $health->getStatusCode());
         $this->assertSame('OK', (string) $health->getBody());
 
-        $json = await($browser->get('http://127.0.0.1/json'));
+        $json = await($browser->get('http://127.0.0.1:8888/json'));
         $this->assertSame(200, $json->getStatusCode());
         $this->assertJsonStringEqualsJsonString('{"test":"json?"}', (string) $json->getBody());
 
-        $custom = await($browser->get('http://127.0.0.1/custom'));
+        $custom = await($browser->get('http://127.0.0.1:8888/custom'));
         $this->assertSame(201, $custom->getStatusCode());
         $this->assertSame('Bearer XXX', $custom->getHeaderLine('Authorization'));
         $this->assertSame('Body', (string) $custom->getBody());

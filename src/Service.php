@@ -31,6 +31,7 @@ class Service
 {
     protected SqsClient $sqs;
     protected SnsClient $sns;
+    private int $port = 80;
 
     /**
      * Starts the service
@@ -45,7 +46,7 @@ class Service
         $httpServerFactory = new HttpServerFactory();
 
         $routes = $httpRouteLoader->load($this);
-        $socket = $httpServerFactory->create($routes);
+        $socket = $httpServerFactory->create($routes, $this->port);
 
         $killCommand = function () use ($socket) {
             Logger::info("Stopping service");
@@ -58,6 +59,11 @@ class Service
         Loop::addSignal(SIGTERM, $killCommand);
 
         Logger::info("Mononoke framework up and running!");
+    }
+
+    public function setPort(int $port): void
+    {
+        $this->port = $port;
     }
 
     private function setupQueuePoller(): void
