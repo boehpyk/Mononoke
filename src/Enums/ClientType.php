@@ -7,8 +7,8 @@ namespace Kekke\Mononoke\Enums;
 /**
  * Enum with aws client types
  */
-enum ClientType
+enum ClientType: string
 {
-    case SNS;
-    case SQS;
+    case SNS = 'sns';
+    case SQS = 'sqs';
 }

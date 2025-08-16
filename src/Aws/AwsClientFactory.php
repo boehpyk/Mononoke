@@ -10,18 +10,26 @@ use Kekke\Mononoke\Enums\ClientType;
 
 class AwsClientFactory
 {
+    private static array $cache = [];
+
     /**
      * Create a AwsClient of ClientType
      */
     public static function create(ClientType $clientType): SnsClient|SqsClient
     {
+        if (isset(self::$cache[$clientType->value])) {
+            return self::$cache[$clientType->value];
+        }
+
         $commonConfig = [
             'version' => 'latest',
         ];
 
-        return match ($clientType) {
+        self::$cache[$clientType->value] = match ($clientType) {
             ClientType::SNS => new SnsClient($commonConfig),
             ClientType::SQS => new SqsClient($commonConfig),
         };
+
+        return self::$cache[$clientType->value];
     }
 }
