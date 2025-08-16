@@ -16,14 +16,14 @@ class Service extends MononokeService
     /**
      * Receive a message and forward to another topic using Mononoke\Transport\AwsSns
      */
-    #[AwsSnsSqs('topic', 'queue')]
+    #[AwsSnsSqs('mononoke-topic', 'mononoke-queue')]
     public function incoming($message)
     {
         Logger::info("Received message!", ["Message" => $message]);
-        AwsSns::publish(topic: 'another-topic', data: ['msg' => $message]);
+        AwsSns::publish(topic: 'another-topic', data: ['msg' => 'I have received a message and I\'m passing it along']);
     }
 
-    #[AwsSnsSqs('another-topic', 'another-queue')]
+    #[AwsSnsSqs('mononoke-another-topic', 'mononoke-another-queue')]
     public function anotherIncoming($message)
     {
         Logger::info("Received message in another-topic!", ["Message" => $message]);

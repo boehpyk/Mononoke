@@ -1,4 +1,4 @@
-FROM php:8.4-cli-alpine
+FROM --platform=linux/amd64 php:8.4-cli-alpine
 
 RUN apk add --no-cache unzip git inotify-tools bash \
     && docker-php-ext-install pcntl
