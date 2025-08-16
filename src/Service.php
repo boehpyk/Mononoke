@@ -6,7 +6,6 @@ namespace Kekke\Mononoke;
 
 use Aws\Sns\SnsClient;
 use Aws\Sqs\SqsClient;
-use FastRoute\RouteCollector;
 use Kekke\Mononoke\Attributes\AwsSnsSqs;
 use Kekke\Mononoke\Attributes\Schedule;
 use Kekke\Mononoke\Aws\AwsClientFactory;
@@ -14,7 +13,6 @@ use Kekke\Mononoke\Aws\SnsSqsInstaller;
 use Kekke\Mononoke\Aws\SqsMessageHandler;
 use Kekke\Mononoke\Aws\SqsPoller;
 use Kekke\Mononoke\Enums\ClientType;
-use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Helpers\Logger;
 use Kekke\Mononoke\Http\HttpRouteLoader;
 use Kekke\Mononoke\Http\HttpServerFactory;
@@ -24,12 +22,6 @@ use Kekke\Mononoke\Scheduling\SchedulerEvaluator;
 use Kekke\Mononoke\Scheduling\ScheduleState;
 use Kekke\Mononoke\Scheduling\SystemClock;
 use React\EventLoop\Loop;
-use React\Http\HttpServer;
-use React\Socket\SocketServer;
-use React\Http\Message\Response;
-use RuntimeException;
-
-use function FastRoute\simpleDispatcher;
 
 /**
  * Main entrypoint for a Mononoke service
@@ -82,7 +74,7 @@ class Service
                 $queueUrl = $installer->getQueueUrl();
 
                 // Setup poller
-                
+
                 /** @var SqsClient $sqsClient */
                 $sqsClient = AwsClientFactory::create(ClientType::SQS);
                 $poller = new SqsPoller($sqsClient, $queueUrl);
@@ -120,8 +112,8 @@ class Service
         $clock = new SystemClock();
         $evaluator = new SchedulerEvaluator($clock);
 
-        foreach($scheduleMethods as $entry) {
-            foreach($entry['attributes'] as $attr) {
+        foreach ($scheduleMethods as $entry) {
+            foreach ($entry['attributes'] as $attr) {
                 $state = new ScheduleState();
                 $invoker = new ScheduledInvoker($state, $clock);
                 $closure = $entry['method']->getClosure($this);
