@@ -10,6 +10,7 @@ use Kekke\Mononoke\Enums\ClientType;
 
 class AwsClientFactory
 {
+    /** @var array<string, SnsClient|SqsClient> */
     private static array $cache = [];
 
     /**
