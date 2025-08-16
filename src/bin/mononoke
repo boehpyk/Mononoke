@@ -1,7 +1,23 @@
 #!/usr/bin/env php
 <?php
 
-require __DIR__ . '/../../vendor/autoload.php';
+$autoloadCandidates = [
+    __DIR__ . '/../../vendor/autoload.php',       // local dev: src/bin/mononoke
+    __DIR__ . '/../../../../autoload.php',        // installed: vendor/kekke/mononoke/src/bin/mononoke
+];
+
+$autoload = null;
+foreach ($autoloadCandidates as $file) {
+    if (file_exists($file)) {
+        $autoload = require $file;
+        break;
+    }
+}
+
+if ($autoload === null) {
+    fwrite(STDERR, "Could not find autoload.php\n");
+    exit(1);
+}
 
 use Kekke\Mononoke\Framework;
 
