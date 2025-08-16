@@ -3,6 +3,9 @@ FROM --platform=linux/amd64 php:8.4-cli-alpine
 RUN apk add --no-cache unzip git inotify-tools bash \
     && docker-php-ext-install pcntl
 
+RUN pecl install swoole \
+    && docker-php-ext-enable swoole
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
