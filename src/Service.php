@@ -16,12 +16,13 @@ use Kekke\Mononoke\Aws\SqsPoller;
 use Kekke\Mononoke\Enums\ClientType;
 use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Helpers\Logger;
+use Kekke\Mononoke\Http\HttpRouteLoader;
+use Kekke\Mononoke\Http\HttpServerFactory;
 use Kekke\Mononoke\Reflection\AttributeScanner;
 use Kekke\Mononoke\Scheduling\ScheduledInvoker;
 use Kekke\Mononoke\Scheduling\SchedulerEvaluator;
 use Kekke\Mononoke\Scheduling\ScheduleState;
 use Kekke\Mononoke\Scheduling\SystemClock;
-use ReflectionClass;
 use React\EventLoop\Loop;
 use React\Http\HttpServer;
 use React\Socket\SocketServer;
@@ -47,7 +48,12 @@ class Service
     {
         $this->setupScheduler();
         $this->setupQueuePoller();
-        $socket = $this->setupHttpServer();
+
+        $httpRouteLoader = new HttpRouteLoader();
+        $httpServerFactory = new HttpServerFactory();
+
+        $routes = $httpRouteLoader->load($this);
+        $socket = $httpServerFactory->create($routes);
 
         $killCommand = function () use ($socket) {
             Logger::info("Stopping service");
@@ -60,71 +66,6 @@ class Service
         Loop::addSignal(SIGTERM, $killCommand);
 
         Logger::info("Mononoke framework up and running!");
-    }
-
-    private function setupHttpServer(): SocketServer
-    {
-        $scanner = new AttributeScanner($this);
-        $httpMethods = $scanner->getMethodsWithAttribute(\Kekke\Mononoke\Attributes\Http::class);
-
-        $routes = [];
-        foreach ($httpMethods as $entry) {
-            foreach ($entry['attributes'] as $httpAttr) {
-                $routes[] = [
-                    $httpAttr->method->value,
-                    $httpAttr->path,
-                    [$this, $entry['method']->getName()]
-                ];
-            }
-        }
-
-        $dispatcher = simpleDispatcher(function (RouteCollector $r) use ($routes) {
-            foreach ($routes as [$method, $path, $handler]) {
-                $r->addRoute($method, $path, $handler);
-            }
-        });
-
-        if (count($routes) > 0) {
-            Logger::info("HTTP routes registered", ['number_of_routes' => count($routes)]);
-        }
-
-        // Setup HTTP server
-        $server = new HttpServer(function (\Psr\Http\Message\ServerRequestInterface $request) use ($dispatcher) {
-            $routeInfo = $dispatcher->dispatch($request->getMethod(), $request->getUri()->getPath());
-
-            switch ($routeInfo[0]) {
-                case \FastRoute\Dispatcher::NOT_FOUND:
-                    return new Response(404, ['Content-Type' => 'text/plain'], 'Not found');
-                case \FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
-                    return new Response(405, ['Content-Type' => 'text/plain'], 'Method not allowed');
-                case \FastRoute\Dispatcher::FOUND:
-                    $handler = $routeInfo[1];
-                    $vars = $routeInfo[2];
-                    $result = call_user_func_array($handler, $vars);
-
-                    if ($result instanceof Response) {
-                        return $result;
-                    }
-
-                    if (is_array($result)) {
-                        return new Response(200, ['Content-Type' => 'application/json'], json_encode($result, JSON_THROW_ON_ERROR));
-                    }
-
-                    return new Response(200, ['Content-Type' => 'text/plain'], $result);
-            }
-
-            return new Response(500, ['Content-Type' => 'text/plain'], 'Unexpected error');
-        });
-
-        try {
-            $socket = new SocketServer('0.0.0.0:80', [], null);
-            $server->listen($socket);
-        } catch (RuntimeException $e) {
-            Logger::exception("Unable to start http server: {$e->getMessage()}", $e);
-            throw new MononokeException("Unable to start http server: {$e->getMessage()}");
-        }
-
-        return $socket;
     }
 
     private function setupQueuePoller(): void
