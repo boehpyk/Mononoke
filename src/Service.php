@@ -21,7 +21,8 @@ use Kekke\Mononoke\Scheduling\ScheduledInvoker;
 use Kekke\Mononoke\Scheduling\SchedulerEvaluator;
 use Kekke\Mononoke\Scheduling\ScheduleState;
 use Kekke\Mononoke\Scheduling\SystemClock;
-use React\EventLoop\Loop;
+use Swoole\Process;
+use Swoole\Timer;
 
 /**
  * Main entrypoint for a Mononoke service
@@ -46,17 +47,18 @@ class Service
         $httpServerFactory = new HttpServerFactory();
 
         $routes = $httpRouteLoader->load($this);
-        $socket = $httpServerFactory->create($routes, $this->port);
+        $server = $httpServerFactory->create($routes, $this->port);
 
-        $killCommand = function () use ($socket) {
+        $killCommand = function () use ($server) {
             Logger::info("Stopping service");
-            $socket->close();
-            Loop::stop();
+            $server->shutdown();
+            Timer::clearAll();
             Logger::info("Terminated service");
+            exit(0);
         };
 
-        Loop::addSignal(SIGINT, $killCommand);
-        Loop::addSignal(SIGTERM, $killCommand);
+        Process::signal(SIGINT, $killCommand);
+        Process::signal(SIGTERM, $killCommand);
 
         Logger::info("Mononoke framework up and running!");
     }
@@ -97,7 +99,7 @@ class Service
             Logger::info("SQS listeners registered", ['number_of_sqs_listeners' => count($queueEntries)]);
         }
 
-        Loop::addPeriodicTimer(5, function () use ($queueEntries) {
+        Timer::tick(5000, function () use ($queueEntries) {
             foreach ($queueEntries as $queueEntry) {
                 $messages = $queueEntry['poller']->poll();
 
@@ -137,7 +139,7 @@ class Service
             Logger::info("Schedulers registered", ['number_of_schedulers' => count($scheduleEntries)]);
         }
 
-        Loop::addPeriodicTimer(0, function () use ($scheduleEntries, $evaluator) {
+        Timer::tick(0, function () use ($scheduleEntries, $evaluator) {
             foreach ($scheduleEntries as $entry) {
                 if ($evaluator->shouldRun($entry['meta'], $entry['state'])) {
                     $entry['invoker']->invoke();
