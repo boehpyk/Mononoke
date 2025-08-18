@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kekke\Mononoke\Http;
 
 use FastRoute\RouteCollector;
+use GuzzleHttp\Psr7\Response;
 use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Helpers\Logger;
 
@@ -80,9 +81,13 @@ class HttpServerFactory
         $result = call_user_func_array($handler, $vars);
 
         switch (true) {
-            case $result instanceof SwooleResponse:
-                // If handler already manipulated the response, just return
-                return;
+            case $result instanceof Response:
+                $response->status($result->getStatusCode());
+                foreach($result->getHeaders() as $headerName => $headerValue) {
+                    $response->header($headerName, $headerValue);
+                }
+                $response->end($result->getBody()->getContents());
+                break;
 
             case is_array($result):
                 $response->status(200);
