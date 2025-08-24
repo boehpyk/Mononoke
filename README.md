@@ -8,7 +8,7 @@
 ---
 
 Mononoke is a PHP microservice framework and utility toolkit built with modern PHP practices.  
-It leverages **ReactPHP** for an asynchronous HTTP server and the **AWS SDK** for SNS and SQS integration,  
+It leverages **Swoole** for an asynchronous HTTP server and the **AWS SDK** for SNS and SQS integration,  
 allowing you to build event-driven, scalable PHP applications.
 
 ---
@@ -18,7 +18,7 @@ allowing you to build event-driven, scalable PHP applications.
 - **AWS SNS and SQS Integration**  
   Manage SNS topics, send notifications, subscribe queues, and poll SQS messages asynchronously.
 
-- **ReactPHP HTTP Server**  
+- **Swoole HTTP Server**  
   Asynchronous HTTP server with FastRoute-based routing for defining HTTP endpoints via PHP attributes.
 
 - **Scheduler**  
@@ -45,7 +45,6 @@ use Kekke\Mononoke\Attributes\Http;
 use Kekke\Mononoke\Attributes\Schedule;
 use Kekke\Mononoke\Enums\Scheduler;
 use Kekke\Mononoke\Service as MononokeService;
-use React\Http\Message\Response;
 
 class Service extends MononokeService
 {
@@ -92,7 +91,7 @@ Define HTTP routes directly on service methods with the `Http` attribute.
 - Route methods can return:
   - `string` → returned as `text/plain` (200)
   - `array` → returned as `application/json` (200, JSON-encoded)
-  - `React\Http\Message\Response` → returned as-is
+  - `GuzzleHttp\Psr7\Response` → returned as-is
 - Typical definition:
 
 ```php
@@ -109,9 +108,9 @@ Define HTTP routes directly on service methods with the `Http` attribute.
     }
 
     #[Http('GET', '/custom')]
-    public function custom(): \React\Http\Message\Response
+    public function custom(): \GuzzleHttp\Psr7\Response
     {
-        return new \React\Http\Message\Response(201, ['Authorization' => 'Bearer token'], 'Custom body');
+        return new \GuzzleHttp\Psr7\Response(201, ['Authorization' => 'Bearer token'], 'Custom body');
     }
 ```
 
