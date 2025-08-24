@@ -10,7 +10,7 @@
     "require-dev": {
         "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^12.2",
-        "swoole/ide-helper": "^6.0"
+        "swoole/ide-helper": "^6.0.2"
     },
     "autoload": {
         "psr-4": {
