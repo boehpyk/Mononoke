@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
 
+use GuzzleHttp\Psr7\Response as Psr7Response;
 use Kekke\Mononoke\Attributes\Http;
 use Kekke\Mononoke\Service as MononokeService;
-use React\Http\Message\Response;
 
 class Service extends MononokeService
 {
@@ -25,6 +25,6 @@ class Service extends MononokeService
     #[Http('GET', '/custom')]
     public function custom()
     {
-        return new Response(201, ['Authorization' => 'Bearer YeaH!'], 'Body');
+        return new Psr7Response(201, ['Authorization' => 'Bearer XXX'], "Body");
     }
 }

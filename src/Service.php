@@ -21,7 +21,9 @@ use Kekke\Mononoke\Scheduling\ScheduledInvoker;
 use Kekke\Mononoke\Scheduling\SchedulerEvaluator;
 use Kekke\Mononoke\Scheduling\ScheduleState;
 use Kekke\Mononoke\Scheduling\SystemClock;
-use React\EventLoop\Loop;
+use Swoole\Event;
+use Swoole\Http\Server;
+use Swoole\Timer;
 
 /**
  * Main entrypoint for a Mononoke service
@@ -39,31 +41,53 @@ class Service
      */
     public function run(): void
     {
-        $this->setupScheduler();
-        $this->setupQueuePoller();
-
         $httpRouteLoader = new HttpRouteLoader();
         $httpServerFactory = new HttpServerFactory();
 
         $routes = $httpRouteLoader->load($this);
-        $socket = $httpServerFactory->create($routes, $this->port);
+        $server = null;
 
-        $killCommand = function () use ($socket) {
-            Logger::info("Stopping service");
-            $socket->close();
-            Loop::stop();
-            Logger::info("Terminated service");
-        };
+        if (count($routes) > 0) {
+            $server = $httpServerFactory->create($routes, $this->port);
+        }
 
-        Loop::addSignal(SIGINT, $killCommand);
-        Loop::addSignal(SIGTERM, $killCommand);
+        $this->setupSignalHandler($server);
+        $this->setupQueuePoller();
+        $this->setupScheduler();
 
         Logger::info("Mononoke framework up and running!");
+
+        if (!is_null($server)) {
+            $server->start();
+        } else {
+            Event::wait();
+        }
     }
 
     public function setPort(int $port): void
     {
         $this->port = $port;
+    }
+
+    private function setupSignalHandler(?Server $server): void
+    {
+        $killCommand = function () use ($server) {
+            Logger::info("Stopping service");
+
+            if (!is_null($server)) {
+                $server->shutdown();
+            }
+            Event::exit();
+
+            Logger::info("Terminated service");
+        };
+
+        pcntl_signal(SIGINT, $killCommand);
+        pcntl_signal(SIGTERM, $killCommand);
+
+        Timer::tick(200, function () {
+            pcntl_signal_dispatch();
+        });
     }
 
     private function setupQueuePoller(): void
@@ -95,18 +119,18 @@ class Service
 
         if (count($queueEntries) > 0) {
             Logger::info("SQS listeners registered", ['number_of_sqs_listeners' => count($queueEntries)]);
-        }
 
-        Loop::addPeriodicTimer(5, function () use ($queueEntries) {
-            foreach ($queueEntries as $queueEntry) {
-                $messages = $queueEntry['poller']->poll();
+            Timer::tick(5000, function () use ($queueEntries) {
+                foreach ($queueEntries as $queueEntry) {
+                    $messages = $queueEntry['poller']->poll();
 
-                foreach ($messages as $message) {
-                    $queueEntry['handler']->handle($message['Body']);
-                    $queueEntry['poller']->delete($message['ReceiptHandle']);
+                    foreach ($messages as $message) {
+                        $queueEntry['handler']->handle($message['Body']);
+                        $queueEntry['poller']->delete($message['ReceiptHandle']);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     private function setupScheduler(): void
@@ -135,14 +159,14 @@ class Service
 
         if (count($scheduleEntries) > 0) {
             Logger::info("Schedulers registered", ['number_of_schedulers' => count($scheduleEntries)]);
-        }
 
-        Loop::addPeriodicTimer(0, function () use ($scheduleEntries, $evaluator) {
-            foreach ($scheduleEntries as $entry) {
-                if ($evaluator->shouldRun($entry['meta'], $entry['state'])) {
-                    $entry['invoker']->invoke();
+            Timer::tick(1, function () use ($scheduleEntries, $evaluator) {
+                foreach ($scheduleEntries as $entry) {
+                    if ($evaluator->shouldRun($entry['meta'], $entry['state'])) {
+                        $entry['invoker']->invoke();
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 }

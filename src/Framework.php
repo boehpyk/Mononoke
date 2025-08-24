@@ -17,7 +17,7 @@ const MAGENTA = "\e[35m";
 
 class Framework
 {
-    private static string $version = "0.1.0";
+    private static string $version = "0.1.2";
 
     public static function run(string $file): void
     {

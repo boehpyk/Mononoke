@@ -26,7 +26,7 @@ final class ScheduledInvoker
             throw new MissingCallableException("No callable set for scheduled invocation.");
         }
 
-        ($this->callable)();
         $this->state->updateInvocationTime($this->clock->now()->getTimestamp());
+        ($this->callable)();
     }
 }
