@@ -14,13 +14,17 @@ use Kekke\Mononoke\Aws\SqsMessageHandler;
 use Kekke\Mononoke\Aws\SqsPoller;
 use Kekke\Mononoke\Enums\ClientType;
 use Kekke\Mononoke\Helpers\Logger;
-use Kekke\Mononoke\Http\HttpRouteLoader;
-use Kekke\Mononoke\Http\HttpServerFactory;
 use Kekke\Mononoke\Reflection\AttributeScanner;
 use Kekke\Mononoke\Scheduling\ScheduledInvoker;
 use Kekke\Mononoke\Scheduling\SchedulerEvaluator;
 use Kekke\Mononoke\Scheduling\ScheduleState;
 use Kekke\Mononoke\Scheduling\SystemClock;
+use Kekke\Mononoke\Server\Http\HttpRouteLoader;
+use Kekke\Mononoke\Server\Http\HttpServerFactory;
+use Kekke\Mononoke\Server\WebSocket\WebSocketRouteLoader;
+use Kekke\Mononoke\Server\Options;
+use Kekke\Mononoke\Server\WebSocket\WebSocketAndHttpServerFactory;
+use Kekke\Mononoke\Server\WebSocket\WebSocketServerFactory;
 use Swoole\Event;
 use Swoole\Http\Server;
 use Swoole\Timer;
@@ -42,13 +46,23 @@ class Service
     public function run(): void
     {
         $httpRouteLoader = new HttpRouteLoader();
-        $httpServerFactory = new HttpServerFactory();
+        $wsRouteLoader = new WebSocketRouteLoader();
 
-        $routes = $httpRouteLoader->load($this);
+        $httpRoutes = $httpRouteLoader->load($this);
+        $wsRoutes = $wsRouteLoader->load($this);
+
+        $options = new Options($this->port, $httpRoutes, $wsRoutes);
+
         $server = null;
 
-        if (count($routes) > 0) {
-            $server = $httpServerFactory->create($routes, $this->port);
+        if (count($wsRoutes) > 0 && count($httpRoutes) > 0) {
+            $server = (new WebSocketAndHttpServerFactory())->create($options);
+        }
+        else if (count($wsRoutes) > 0) {
+            $server = (new WebSocketServerFactory())->create($options);
+        }
+        else if (count($httpRoutes) > 0) {
+            $server = (new HttpServerFactory())->create($options);
         }
 
         $this->setupSignalHandler($server);
