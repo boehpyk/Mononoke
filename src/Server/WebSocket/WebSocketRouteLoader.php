@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Kekke\Mononoke\Http;
+namespace Kekke\Mononoke\Server\WebSocket;
 
 use Kekke\Mononoke\Reflection\AttributeScanner;
 
-class HttpRouteLoader
+class WebSocketRouteLoader
 {
     /**
-     * @return list<array{string, string, callable(): mixed}>
+     * @return list<array{\Kekke\Mononoke\Enums\WebSocketEvent, callable(): mixed}>
      */
     public function load(object $service): array
     {
         $scanner = new AttributeScanner($service);
-        $httpMethods = $scanner->getMethodsWithAttribute(\Kekke\Mononoke\Attributes\Http::class);
+        $httpMethods = $scanner->getMethodsWithAttribute(\Kekke\Mononoke\Attributes\WebSocket::class);
 
         $routes = [];
         foreach ($httpMethods as $entry) {
@@ -22,8 +22,7 @@ class HttpRouteLoader
                 /** @var callable(): mixed $callable */
                 $callable = [$service, $entry['method']->getName()];
                 $routes[] = [
-                    $httpAttr->method->value,
-                    $httpAttr->path,
+                    $httpAttr->event,
                     $callable
                 ];
             }
