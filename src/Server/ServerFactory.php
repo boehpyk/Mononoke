@@ -8,5 +8,5 @@ use Swoole\Server;
 
 interface ServerFactory
 {
-    public function create(Options $options): Server;
+    public function create(Options $options): void;
 }

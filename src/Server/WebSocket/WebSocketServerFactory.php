@@ -12,12 +12,10 @@ use Swoole\WebSocket\Server;
 
 class WebSocketServerFactory implements ServerFactory
 {
-    public function create(Options $options): Server
+    public function create(Options $options): void
     {
         try {
-            $server = new Server("0.0.0.0", $options->port);
-
-            $server->on("open", function (Server $server, $request) use ($options) {
+            $options->server->on("open", function (Server $server, $request) use ($options) {
                 foreach ($options->wsRoutes as [$method, $callable]) {
                     if ($method === WebSocketEvent::OnOpen) {
                         ($callable)($server, $request->fd);
@@ -25,7 +23,7 @@ class WebSocketServerFactory implements ServerFactory
                 }
             });
 
-            $server->on("message", function (Server $server, $request) use ($options) {
+            $options->server->on("message", function (Server $server, $request) use ($options) {
                 foreach ($options->wsRoutes as [$method, $callable]) {
                     if ($method === WebSocketEvent::OnMessage) {
                         ($callable)($server, $request->fd, $request->data);
@@ -33,15 +31,13 @@ class WebSocketServerFactory implements ServerFactory
                 }
             });
 
-            $server->on("close", function (Server $server, $fd) use ($options) {
+            $options->server->on("close", function (Server $server, $fd) use ($options) {
                 foreach ($options->wsRoutes as [$method, $callable]) {
                     if ($method === WebSocketEvent::OnClose) {
                         ($callable)($server, $fd);
                     }
                 }
             });
-
-            return $server;
         } catch (\Throwable $e) {
             throw new MononokeException("Unable to start server: {$e->getMessage()}", 0, $e);
         }

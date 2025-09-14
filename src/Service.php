@@ -21,12 +21,17 @@ use Kekke\Mononoke\Scheduling\ScheduleState;
 use Kekke\Mononoke\Scheduling\SystemClock;
 use Kekke\Mononoke\Server\Http\HttpRouteLoader;
 use Kekke\Mononoke\Server\Http\HttpServerFactory;
+use Kekke\Mononoke\Server\Task\TaskServerFactory;
 use Kekke\Mononoke\Server\WebSocket\WebSocketRouteLoader;
 use Kekke\Mononoke\Server\Options;
-use Kekke\Mononoke\Server\WebSocket\WebSocketAndHttpServerFactory;
+use Kekke\Mononoke\Server\Task\TaskRouteLoader;
 use Kekke\Mononoke\Server\WebSocket\WebSocketServerFactory;
+use Swoole\Constant;
 use Swoole\Event;
-use Swoole\Http\Server;
+use Swoole\WebSocket\Server as WebSocketServer;
+use Swoole\Http\Server as HttpServer;
+use Swoole\Process;
+use Swoole\Server;
 use Swoole\Timer;
 
 /**
@@ -37,6 +42,7 @@ class Service
 {
     protected SqsClient $sqs;
     protected SnsClient $sns;
+    protected Server $server;
     private int $port = 80;
 
     /**
@@ -47,31 +53,44 @@ class Service
     {
         $httpRouteLoader = new HttpRouteLoader();
         $wsRouteLoader = new WebSocketRouteLoader();
+        $taskRouteLoader = new TaskRouteLoader();
 
         $httpRoutes = $httpRouteLoader->load($this);
         $wsRoutes = $wsRouteLoader->load($this);
-
-        $options = new Options($this->port, $httpRoutes, $wsRoutes);
+        $taskRoutes = $taskRouteLoader->load($this);
 
         $server = null;
 
-        if (count($wsRoutes) > 0 && count($httpRoutes) > 0) {
-            $server = (new WebSocketAndHttpServerFactory())->create($options);
-        }
-        else if (count($wsRoutes) > 0) {
-            $server = (new WebSocketServerFactory())->create($options);
-        }
-        else if (count($httpRoutes) > 0) {
-            $server = (new HttpServerFactory())->create($options);
+        if (count($wsRoutes) > 0) {
+            $server = new WebSocketServer("0.0.0.0", $this->port);
+            $options = new Options($server, $httpRoutes, $wsRoutes, $taskRoutes);
+            (new WebSocketServerFactory())->create($options);
         }
 
-        $this->setupSignalHandler($server);
+        if (count($httpRoutes) > 0) {
+            if (is_null($server)) {
+                $server = new HttpServer("0.0.0.0", $this->port);
+            }
+            $options = new Options($server, $httpRoutes, $wsRoutes, $taskRoutes);
+            (new HttpServerFactory())->create($options);
+        }
+
+        if (count($taskRoutes) > 0) {
+            if (is_null($server)) {
+                $server = new Server("0.0.0.0", $this->port);
+            }
+            $options = new Options($server, $httpRoutes, $wsRoutes, $taskRoutes);
+            (new TaskServerFactory())->create($options);
+            $server->set([Constant::OPTION_TASK_WORKER_NUM => 2]);
+        }
+
         $this->setupQueuePoller();
         $this->setupScheduler();
 
         Logger::info("Mononoke framework up and running!");
 
         if (!is_null($server)) {
+            $this->server = &$server;
             $server->start();
         } else {
             Event::wait();
@@ -81,27 +100,6 @@ class Service
     public function setPort(int $port): void
     {
         $this->port = $port;
-    }
-
-    private function setupSignalHandler(?Server $server): void
-    {
-        $killCommand = function () use ($server) {
-            Logger::info("Stopping service");
-
-            if (!is_null($server)) {
-                $server->shutdown();
-            }
-            Event::exit();
-
-            Logger::info("Terminated service");
-        };
-
-        pcntl_signal(SIGINT, $killCommand);
-        pcntl_signal(SIGTERM, $killCommand);
-
-        Timer::tick(200, function () {
-            pcntl_signal_dispatch();
-        });
     }
 
     private function setupQueuePoller(): void
