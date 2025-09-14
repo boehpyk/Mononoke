@@ -21,14 +21,21 @@ allowing you to build event-driven, scalable PHP applications.
 - **Swoole HTTP Server**  
   Asynchronous HTTP server with FastRoute-based routing for defining HTTP endpoints via PHP attributes.
 
+- **WebSockets**  
+  Real-time, bidirectional communication between clients and the server, powered by Swoole’s WebSocket server.
+
+- **Background Tasks**  
+  Offload blocking or long-running work to Swoole’s task workers for efficient non-blocking request handling.
+
 - **Scheduler**  
   Register cron-like scheduled tasks using attributes.
+
 
 ---
 
 ## Attribute-based Listeners
 
-Mononoke uses PHP attributes to register **HTTP routes**, **scheduled tasks**, and **SNS/SQS message handlers**.  
+Mononoke uses PHP attributes to register **HTTP routes**, **WebSocket event handlers**, **scheduled tasks**, **background tasks**, and **SNS/SQS message handlers**.  
 This allows for a clean and declarative service definition.
 
 ### Example Service
