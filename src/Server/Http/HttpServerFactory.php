@@ -11,20 +11,17 @@ use Kekke\Mononoke\Server\Options;
 
 use Swoole\Http\Response as SwooleResponse;
 use Swoole\Http\Request as SwooleRequest;
-use Swoole\Http\Server as SwooleHttpServer;
 
 class HttpServerFactory
 {
     use CreateDispatcher, RouteHandler;
 
-    public function create(Options $options): SwooleHttpServer
+    public function create(Options $options): void
     {
         $dispatcher = $this->getDispatcher($options->httpRoutes);
 
         try {
-            $server = new SwooleHttpServer("0.0.0.0", $options->port);
-
-            $server->on("request", function (SwooleRequest $request, SwooleResponse $response) use ($dispatcher) {
+            $options->server->on("request", function (SwooleRequest $request, SwooleResponse $response) use ($dispatcher) {
                 $path   = $request->server['request_uri'] ?? '/';
                 $method = strtoupper($request->server['request_method'] ?? 'GET');
 
@@ -56,8 +53,6 @@ class HttpServerFactory
                         break;
                 }
             });
-
-            return $server;
         } catch (\Throwable $e) {
             throw new MononokeException("Unable to start HTTP server: {$e->getMessage()}", 0, $e);
         }
