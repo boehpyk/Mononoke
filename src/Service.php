@@ -81,7 +81,7 @@ class Service
             }
             $options = new Options($server, $httpRoutes, $wsRoutes, $taskRoutes);
             (new TaskServerFactory())->create($options);
-            $server->set([Constant::OPTION_TASK_WORKER_NUM => 2]); // @phpstan-ignore-line
+            $server->set([Constant::OPTION_TASK_WORKER_NUM => 2]);
         }
 
         $this->setupQueuePoller();
