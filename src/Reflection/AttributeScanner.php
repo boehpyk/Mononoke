@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kekke\Mononoke\Reflection;
 
+use Kekke\Mononoke\Attributes\Config;
 use ReflectionClass;
 use ReflectionMethod;
 
@@ -19,6 +20,24 @@ class AttributeScanner
     public function __construct(private readonly object $target)
     {
         $this->cacheAttributes();
+    }
+
+    public function getAttributeInstanceFromClass(string $attributeClass): Config
+    {
+        $reflector = new ReflectionClass($this->target);
+
+        $attributes = $reflector->getAttributes($attributeClass);
+        if (empty($attributes)) {
+            return new Config();
+        }
+
+        $config = $attributes[0]->newInstance();
+
+        if ($config instanceof Config) {
+            return $config;
+        }
+
+        return new Config();
     }
 
     /**
