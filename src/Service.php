@@ -7,11 +7,13 @@ namespace Kekke\Mononoke;
 use Aws\Sns\SnsClient;
 use Aws\Sqs\SqsClient;
 use Kekke\Mononoke\Attributes\AwsSnsSqs;
+use Kekke\Mononoke\Attributes\Config;
 use Kekke\Mononoke\Attributes\Schedule;
 use Kekke\Mononoke\Aws\AwsClientFactory;
 use Kekke\Mononoke\Aws\SnsSqsInstaller;
 use Kekke\Mononoke\Aws\SqsMessageHandler;
 use Kekke\Mononoke\Aws\SqsPoller;
+use Kekke\Mononoke\Config\ConfigLoader;
 use Kekke\Mononoke\Enums\ClientType;
 use Kekke\Mononoke\Helpers\Logger;
 use Kekke\Mononoke\Reflection\AttributeScanner;
@@ -43,13 +45,13 @@ class Service
     protected SqsClient $sqs;
     protected SnsClient $sns;
     protected Server $server;
-    private int $port = 80;
+    protected Config $config;
 
     /**
      * Starts the service
      * This method will create the HTTP server and SQS poller if needed
      */
-    public function run(): void
+    final public function run(): void
     {
         $httpRouteLoader = new HttpRouteLoader();
         $wsRouteLoader = new WebSocketRouteLoader();
@@ -62,14 +64,16 @@ class Service
         $server = null;
 
         if (count($wsRoutes) > 0) {
-            $server = new WebSocketServer("0.0.0.0", $this->port);
+            $server = new WebSocketServer("0.0.0.0", $this->config->httpConfig->port);
+            Logger::info("Started WebSocket server at port {$this->config->httpConfig->port}");
             $options = new Options($server, $httpRoutes, $wsRoutes, $taskRoutes);
             (new WebSocketServerFactory())->create($options);
         }
 
         if (count($httpRoutes) > 0) {
             if (is_null($server)) {
-                $server = new HttpServer("0.0.0.0", $this->port);
+                $server = new HttpServer("0.0.0.0", $this->config->httpConfig->port);
+                Logger::info("Started HTTP server at port {$this->config->httpConfig->port}");
             }
             $options = new Options($server, $httpRoutes, $wsRoutes, $taskRoutes);
             (new HttpServerFactory())->create($options);
@@ -77,11 +81,12 @@ class Service
 
         if (count($taskRoutes) > 0) {
             if (is_null($server)) {
-                $server = new Server("0.0.0.0", $this->port);
+                $server = new Server("0.0.0.0", $this->config->httpConfig->port);
             }
             $options = new Options($server, $httpRoutes, $wsRoutes, $taskRoutes);
             (new TaskServerFactory())->create($options);
-            $server->set([Constant::OPTION_TASK_WORKER_NUM => 2]); // @phpstan-ignore-line
+            $server->set([Constant::OPTION_TASK_WORKER_NUM => $this->config->mononokeConfig->numberOfTaskWorkers]); // @phpstan-ignore-line
+            Logger::info("Created {$this->config->mononokeConfig->numberOfTaskWorkers} task workers");
         }
 
         $this->setupQueuePoller();
@@ -97,9 +102,35 @@ class Service
         }
     }
 
-    public function setPort(int $port): void
+    final public function loadConfig(): void
     {
-        $this->port = $port;
+        $configLoader = new ConfigLoader();
+
+        $this->config = $configLoader->load($this);
+
+        $this->config = $this->applyOverrides($this->config);
+    }
+
+    final public function getConfig(): Config
+    {
+        return $this->config;
+    }
+
+    private function applyOverrides(Config $config): Config
+    {
+        if ($port = getenv('HTTP_PORT')) {
+            $config->httpConfig->port = (int)$port;
+        }
+
+        if ($workers = getenv('TASK_WORKERS')) {
+            $config->mononokeConfig->numberOfTaskWorkers = (int)$workers;
+        }
+
+        if ($sqsTime = getenv('SQS_POLL_TIME')) {
+            $config->awsConfig->sqsPollTimeInSeconds = (int)$sqsTime;
+        }
+
+        return $config;
     }
 
     private function setupQueuePoller(): void
@@ -132,7 +163,7 @@ class Service
         if (count($queueEntries) > 0) {
             Logger::info("SQS listeners registered", ['number_of_sqs_listeners' => count($queueEntries)]);
 
-            Timer::tick(5000, function () use ($queueEntries) {
+            Timer::tick($this->config->awsConfig->sqsPollTimeInSeconds * 1000, function () use ($queueEntries) {
                 foreach ($queueEntries as $queueEntry) {
                     $messages = $queueEntry['poller']->poll();
 

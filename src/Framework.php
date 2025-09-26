@@ -27,6 +27,7 @@ class Framework
             if (is_subclass_of($class, Service::class)) {
                 $service = new $class();
                 self::displayInfo();
+                $service->loadConfig();
                 $service->run();
                 return;
             }
