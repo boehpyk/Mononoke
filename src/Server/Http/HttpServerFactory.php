@@ -8,20 +8,36 @@ use Kekke\Mononoke\Exceptions\MononokeException;
 use Kekke\Mononoke\Server\Http\Traits\CreateDispatcher;
 use Kekke\Mononoke\Server\Http\Traits\RouteHandler;
 use Kekke\Mononoke\Server\Options;
-
+use Kekke\Mononoke\Server\ServerFactory;
 use Swoole\Http\Response as SwooleResponse;
 use Swoole\Http\Request as SwooleRequest;
+use Swoole\Http\Server;
+use Swoole\Server as SwooleServer;
 
-class HttpServerFactory
+class HttpServerFactory implements ServerFactory
 {
     use CreateDispatcher, RouteHandler;
 
-    public function create(Options $options): void
+    public function create(Options $options): SwooleServer
+    {
+
+        $server = new Server("0.0.0.0", $options->config->http->port);
+        $this->registerListeners($server, $options);
+
+        return $server;
+    }
+
+    public function extend(SwooleServer &$server, Options $options): void
+    {
+        $this->registerListeners($server, $options);
+    }
+
+    private function registerListeners(SwooleServer &$server, Options $options): void
     {
         $dispatcher = $this->getDispatcher($options->httpRoutes);
 
         try {
-            $options->server->on("request", function (SwooleRequest $request, SwooleResponse $response) use ($dispatcher) {
+            $server->on("request", function (SwooleRequest $request, SwooleResponse $response) use ($dispatcher) {
                 $path   = $request->server['request_uri'] ?? '/';
                 $method = strtoupper($request->server['request_method'] ?? 'GET');
 
