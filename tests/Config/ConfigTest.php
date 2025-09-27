@@ -10,9 +10,9 @@ use Kekke\Mononoke\Service as MononokeService;
 use PHPUnit\Framework\TestCase;
 
 #[Config(
-    mononokeConfig: new MononokeConfig(numberOfTaskWorkers: 5),
-    awsConfig: new AwsConfig(sqsPollTimeInSeconds: 10),
-    httpConfig: new HttpConfig(port: 8080),
+    mononoke: new MononokeConfig(numberOfTaskWorkers: 5),
+    aws: new AwsConfig(sqsPollTimeInSeconds: 10),
+    http: new HttpConfig(port: 8080),
 )]
 class TestService extends MononokeService {}
 
@@ -31,9 +31,9 @@ final class ConfigTest extends TestCase
         $service->loadConfig();
         $config = $service->getConfig();
 
-        $this->assertSame(5, $config->mononokeConfig->numberOfTaskWorkers);
-        $this->assertSame(10, $config->awsConfig->sqsPollTimeInSeconds);
-        $this->assertSame(8080, $config->httpConfig->port);
+        $this->assertSame(5, $config->mononoke->numberOfTaskWorkers);
+        $this->assertSame(10, $config->aws->sqsPollTimeInSeconds);
+        $this->assertSame(8080, $config->http->port);
     }
 
     public function testHttpPortOverrideFromEnv(): void
@@ -44,7 +44,7 @@ final class ConfigTest extends TestCase
         $service->loadConfig();
         $config = $service->getConfig();
 
-        $this->assertSame(9090, $config->httpConfig->port);
+        $this->assertSame(9090, $config->http->port);
     }
 
     public function testMultipleOverrides(): void
@@ -57,8 +57,8 @@ final class ConfigTest extends TestCase
         $service->loadConfig();
         $config = $service->getConfig();
 
-        $this->assertSame(12, $config->mononokeConfig->numberOfTaskWorkers);
-        $this->assertSame(30, $config->awsConfig->sqsPollTimeInSeconds);
-        $this->assertSame(9090, $config->httpConfig->port);
+        $this->assertSame(12, $config->mononoke->numberOfTaskWorkers);
+        $this->assertSame(30, $config->aws->sqsPollTimeInSeconds);
+        $this->assertSame(9090, $config->http->port);
     }
 }
