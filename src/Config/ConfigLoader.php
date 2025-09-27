@@ -9,6 +9,10 @@ use Kekke\Mononoke\Reflection\AttributeScanner;
 
 class ConfigLoader
 {
+    public function __construct(
+        private readonly OverrideApplier $applier = new OverrideApplier()
+    ) {}
+
     public function load(object $service): Config
     {
         $scanner = new AttributeScanner($service);
@@ -20,24 +24,7 @@ class ConfigLoader
         $overrides = new Overrides();
 
         foreach ($overrides as $override) {
-            $value = getenv($override->envVar);
-
-            if ($value === false) {
-                continue;
-            }
-
-            $type = gettype($config->{$override->configName}->{$override->varName});
-
-            $casted = match ($type) {
-                'integer' => (int) $value,
-                'double'  => (float) $value,
-                'boolean' => filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? false,
-                'string'  => (string) $value,
-                'array'   => (array) $value,
-                default   => $value,
-            };
-
-            $config->{$override->configName}->{$override->varName} = $casted;
+            $this->applier->apply($config, $override);
         }
 
         return $config;
