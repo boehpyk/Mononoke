@@ -14,9 +14,9 @@ use Kekke\Mononoke\Service as MononokeService;
 
 
 #[Config(
-    mononokeConfig: new MononokeConfig(numberOfTaskWorkers: 5),
-    awsConfig: new AwsConfig(sqsPollTimeInSeconds: 10),
-    httpConfig: new HttpConfig(port: 8080),
+    mononoke: new MononokeConfig(numberOfTaskWorkers: 5),
+    aws: new AwsConfig(sqsPollTimeInSeconds: 10),
+    http: new HttpConfig(port: 8080),
 )]
 class Service extends MononokeService
 {
