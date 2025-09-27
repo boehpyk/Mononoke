@@ -107,30 +107,12 @@ class Service
         $configLoader = new ConfigLoader();
 
         $this->config = $configLoader->load($this);
-
-        $this->config = $this->applyOverrides($this->config);
+        $this->config = $configLoader->applyOverrides($this->config);
     }
 
     final public function getConfig(): Config
     {
         return $this->config;
-    }
-
-    private function applyOverrides(Config $config): Config
-    {
-        if ($port = getenv('HTTP_PORT')) {
-            $config->httpConfig->port = (int)$port;
-        }
-
-        if ($workers = getenv('TASK_WORKERS')) {
-            $config->mononokeConfig->numberOfTaskWorkers = (int)$workers;
-        }
-
-        if ($sqsTime = getenv('SQS_POLL_TIME')) {
-            $config->awsConfig->sqsPollTimeInSeconds = (int)$sqsTime;
-        }
-
-        return $config;
     }
 
     private function setupQueuePoller(): void
