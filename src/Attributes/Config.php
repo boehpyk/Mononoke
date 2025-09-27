@@ -16,8 +16,8 @@ use Kekke\Mononoke\Models\MononokeConfig;
 class Config
 {
     public function __construct(
-        public MononokeConfig $mononokeConfig = new MononokeConfig(),
-        public AwsConfig $awsConfig = new AwsConfig(),
-        public HttpConfig $httpConfig = new HttpConfig(),
+        public MononokeConfig $mononoke = new MononokeConfig(),
+        public AwsConfig $aws = new AwsConfig(),
+        public HttpConfig $http = new HttpConfig(),
     ) {}
 }

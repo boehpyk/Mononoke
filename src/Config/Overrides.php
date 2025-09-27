@@ -17,9 +17,9 @@ class Overrides implements \IteratorAggregate
     public function __construct()
     {
         $this->items = [
-            new Override('mononokeConfig', 'numberOfTaskWorkers', 'TASK_WORKERS'),
-            new Override('httpConfig', 'port', 'HTTP_PORT'),
-            new Override('awsConfig', 'sqsPollTimeInSeconds', 'SQS_POLL_TIME'),
+            new Override('mononoke', 'numberOfTaskWorkers', 'TASK_WORKERS'),
+            new Override('http', 'port', 'HTTP_PORT'),
+            new Override('aws', 'sqsPollTimeInSeconds', 'SQS_POLL_TIME'),
         ];
     }
 

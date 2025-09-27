@@ -64,16 +64,16 @@ class Service
         $server = null;
 
         if (count($wsRoutes) > 0) {
-            $server = new WebSocketServer("0.0.0.0", $this->config->httpConfig->port);
-            Logger::info("Started WebSocket server at port {$this->config->httpConfig->port}");
+            $server = new WebSocketServer("0.0.0.0", $this->config->http->port);
+            Logger::info("Started WebSocket server at port {$this->config->http->port}");
             $options = new Options($server, $httpRoutes, $wsRoutes, $taskRoutes);
             (new WebSocketServerFactory())->create($options);
         }
 
         if (count($httpRoutes) > 0) {
             if (is_null($server)) {
-                $server = new HttpServer("0.0.0.0", $this->config->httpConfig->port);
-                Logger::info("Started HTTP server at port {$this->config->httpConfig->port}");
+                $server = new HttpServer("0.0.0.0", $this->config->http->port);
+                Logger::info("Started HTTP server at port {$this->config->http->port}");
             }
             $options = new Options($server, $httpRoutes, $wsRoutes, $taskRoutes);
             (new HttpServerFactory())->create($options);
@@ -81,12 +81,12 @@ class Service
 
         if (count($taskRoutes) > 0) {
             if (is_null($server)) {
-                $server = new Server("0.0.0.0", $this->config->httpConfig->port);
+                $server = new Server("0.0.0.0", $this->config->http->port);
             }
             $options = new Options($server, $httpRoutes, $wsRoutes, $taskRoutes);
             (new TaskServerFactory())->create($options);
-            $server->set([Constant::OPTION_TASK_WORKER_NUM => $this->config->mononokeConfig->numberOfTaskWorkers]); // @phpstan-ignore-line
-            Logger::info("Created {$this->config->mononokeConfig->numberOfTaskWorkers} task workers");
+            $server->set([Constant::OPTION_TASK_WORKER_NUM => $this->config->mononoke->numberOfTaskWorkers]); // @phpstan-ignore-line
+            Logger::info("Created {$this->config->mononoke->numberOfTaskWorkers} task workers");
         }
 
         $this->setupQueuePoller();
@@ -145,7 +145,7 @@ class Service
         if (count($queueEntries) > 0) {
             Logger::info("SQS listeners registered", ['number_of_sqs_listeners' => count($queueEntries)]);
 
-            Timer::tick($this->config->awsConfig->sqsPollTimeInSeconds * 1000, function () use ($queueEntries) {
+            Timer::tick($this->config->aws->sqsPollTimeInSeconds * 1000, function () use ($queueEntries) {
                 foreach ($queueEntries as $queueEntry) {
                     $messages = $queueEntry['poller']->poll();
 
