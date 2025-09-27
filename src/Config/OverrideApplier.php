@@ -9,6 +9,11 @@ use Kekke\Mononoke\Models\Override;
 
 class OverrideApplier
 {
+    /**
+     * Applies an override to the given config file
+     * Does so by checking if the env variable exists (as specified in the Override model)
+     * And then making sure that the configName and varName exists on the config object
+     */
     public function apply(Config &$config, Override $override): void
     {
         $envValue = getenv($override->envVar);
