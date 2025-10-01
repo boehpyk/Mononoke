@@ -6,6 +6,7 @@ namespace Kekke\Mononoke\Aws;
 
 use Aws\Exception\AwsException;
 use Kekke\Mononoke\Exceptions\MononokeException;
+use Kekke\Mononoke\Models\AwsConfig;
 use Kekke\Mononoke\Services\SnsService;
 use Kekke\Mononoke\Services\SqsService;
 
@@ -19,7 +20,7 @@ class SnsSqsInstaller
     /**
      * Sets up a SNS topic and a SQS queue
      */
-    public function setup(SnsService $snsService = new SnsService(), SqsService $sqsService = new SqsService()): void
+    public function setup(AwsConfig $config = new AwsConfig(), SnsService $snsService = new SnsService(), SqsService $sqsService = new SqsService()): void
     {
         try {
             $topicArn = $snsService->create(topicName: $this->topicName);
@@ -54,7 +55,7 @@ class SnsSqsInstaller
 
                 $redrivePolicy = json_encode([
                     'deadLetterTargetArn' => $dlqAttributes['Attributes']['QueueArn'],
-                    'maxReceiveCount'     => 5,
+                    'maxReceiveCount'     => $config->dlqMaxRetryCount,
                 ]);
 
                 $sqsService->setAttributes(
