@@ -20,6 +20,7 @@ class Overrides implements \IteratorAggregate
             new Override(configName: 'mononoke', varName: 'numberOfTaskWorkers', envVar: 'TASK_WORKERS'),
             new Override(configName: 'http', varName: 'port', envVar: 'HTTP_PORT'),
             new Override(configName: 'aws', varName: 'sqsPollTimeInSeconds', envVar: 'SQS_POLL_TIME'),
+            new Override(configName: 'aws', varName: 'dlqMaxRetryCount', envVar: 'SQS_DLQ_MAX_RETRIES')
         ];
     }
 
