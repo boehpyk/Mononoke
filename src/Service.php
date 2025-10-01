@@ -132,7 +132,7 @@ class Service
             foreach ($entry['attributes'] as $attr) {
                 // Setup sns and sqs
                 $installer = new SnsSqsInstaller($attr->topicName, $attr->queueName, $attr->dlqName);
-                $installer->setup();
+                $installer->setup(config: $this->config->aws);
                 $queueUrl = $installer->getQueueUrl();
 
                 // Setup poller
