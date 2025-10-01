@@ -7,11 +7,13 @@ namespace Kekke\Mononoke;
 use Aws\Sns\SnsClient;
 use Aws\Sqs\SqsClient;
 use Kekke\Mononoke\Attributes\AwsSnsSqs;
+use Kekke\Mononoke\Attributes\Config;
 use Kekke\Mononoke\Attributes\Schedule;
 use Kekke\Mononoke\Aws\AwsClientFactory;
 use Kekke\Mononoke\Aws\SnsSqsInstaller;
 use Kekke\Mononoke\Aws\SqsMessageHandler;
 use Kekke\Mononoke\Aws\SqsPoller;
+use Kekke\Mononoke\Config\ConfigLoader;
 use Kekke\Mononoke\Enums\ClientType;
 use Kekke\Mononoke\Helpers\Logger;
 use Kekke\Mononoke\Reflection\AttributeScanner;
@@ -28,9 +30,6 @@ use Kekke\Mononoke\Server\Task\TaskRouteLoader;
 use Kekke\Mononoke\Server\WebSocket\WebSocketServerFactory;
 use Swoole\Constant;
 use Swoole\Event;
-use Swoole\WebSocket\Server as WebSocketServer;
-use Swoole\Http\Server as HttpServer;
-use Swoole\Process;
 use Swoole\Server;
 use Swoole\Timer;
 
@@ -43,13 +42,13 @@ class Service
     protected SqsClient $sqs;
     protected SnsClient $sns;
     protected Server $server;
-    private int $port = 80;
+    protected Config $config;
 
     /**
      * Starts the service
      * This method will create the HTTP server and SQS poller if needed
      */
-    public function run(): void
+    final public function run(): void
     {
         $httpRouteLoader = new HttpRouteLoader();
         $wsRouteLoader = new WebSocketRouteLoader();
@@ -59,30 +58,9 @@ class Service
         $wsRoutes = $wsRouteLoader->load($this);
         $taskRoutes = $taskRouteLoader->load($this);
 
-        $server = null;
+        $options = new Options($httpRoutes, $wsRoutes, $taskRoutes, $this->config);
 
-        if (count($wsRoutes) > 0) {
-            $server = new WebSocketServer("0.0.0.0", $this->port);
-            $options = new Options($server, $httpRoutes, $wsRoutes, $taskRoutes);
-            (new WebSocketServerFactory())->create($options);
-        }
-
-        if (count($httpRoutes) > 0) {
-            if (is_null($server)) {
-                $server = new HttpServer("0.0.0.0", $this->port);
-            }
-            $options = new Options($server, $httpRoutes, $wsRoutes, $taskRoutes);
-            (new HttpServerFactory())->create($options);
-        }
-
-        if (count($taskRoutes) > 0) {
-            if (is_null($server)) {
-                $server = new Server("0.0.0.0", $this->port);
-            }
-            $options = new Options($server, $httpRoutes, $wsRoutes, $taskRoutes);
-            (new TaskServerFactory())->create($options);
-            $server->set([Constant::OPTION_TASK_WORKER_NUM => 2]); // @phpstan-ignore-line
-        }
+        $server = $this->setupServer($options);
 
         $this->setupQueuePoller();
         $this->setupScheduler();
@@ -97,9 +75,50 @@ class Service
         }
     }
 
-    public function setPort(int $port): void
+    final public function loadConfig(): void
     {
-        $this->port = $port;
+        $configLoader = new ConfigLoader();
+
+        $this->config = $configLoader->load($this);
+        $this->config = $configLoader->applyOverrides($this->config);
+    }
+
+    final public function getConfig(): Config
+    {
+        return $this->config;
+    }
+
+    private function setupServer(Options $options): ?Server
+    {
+        $server = null;
+
+        if (count($options->wsRoutes) > 0) {
+            $server = (new WebSocketServerFactory())->create($options);
+            Logger::info("Started WebSocket server at port {$options->config->http->port}");
+        }
+
+        if (count($options->httpRoutes) > 0) {
+            if (is_null($server)) {
+                $server = (new HttpServerFactory())->create($options);
+            } else {
+                (new HttpServerFactory())->extend($server, $options);
+            }
+
+            Logger::info("Started HTTP server at port {$this->config->http->port}");
+        }
+
+        if (count($options->taskRoutes) > 0) {
+            if (is_null($server)) {
+                $server = (new TaskServerFactory())->create($options);
+            } else {
+                (new TaskServerFactory())->extend($server, $options);
+            }
+
+            $server->set([Constant::OPTION_TASK_WORKER_NUM => $this->config->mononoke->numberOfTaskWorkers]); // @phpstan-ignore-line
+            Logger::info("Created {$this->config->mononoke->numberOfTaskWorkers} task workers");
+        }
+
+        return $server;
     }
 
     private function setupQueuePoller(): void
@@ -132,7 +151,7 @@ class Service
         if (count($queueEntries) > 0) {
             Logger::info("SQS listeners registered", ['number_of_sqs_listeners' => count($queueEntries)]);
 
-            Timer::tick(5000, function () use ($queueEntries) {
+            Timer::tick($this->config->aws->sqsPollTimeInSeconds * 1000, function () use ($queueEntries) {
                 foreach ($queueEntries as $queueEntry) {
                     $messages = $queueEntry['poller']->poll();
 
