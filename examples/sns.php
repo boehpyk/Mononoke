@@ -29,6 +29,12 @@ class Service extends MononokeService
         Logger::info("Received message in another-topic!", ["Message" => $message]);
     }
 
+    #[AwsSnsSqs(topicName: 'sns-topic', queueName: 'sqs-queue', dlqName: 'sqs-queue-dlq')]
+    public function queueWithDlq($message)
+    {
+        throw new Exception("Error occurred, send to dlq after 3 tries");
+    }
+
     #[Http(HttpMethod::GET, '/health')]
     public function status()
     {
