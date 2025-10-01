@@ -18,7 +18,7 @@ use Kekke\Mononoke\Exceptions\InvalidAttributeConfigurationException;
 #[Attribute(Attribute::TARGET_METHOD)]
 class AwsSnsSqs
 {
-    public function __construct(public string $topicName, public string $queueName)
+    public function __construct(public string $topicName, public string $queueName, public ?string $dlqName = null)
     {
         $this->validate();
     }
@@ -30,6 +30,10 @@ class AwsSnsSqs
         }
 
         if (! preg_match("/^[A-Za-z0-9-_]+/", $this->queueName)) {
+            throw new InvalidAttributeConfigurationException("Queue Name may only include alphanumeric characters, dashes and hyphens (given: \"$this->queueName\"");
+        }
+
+        if ($this->dlqName && ! preg_match("/^[A-Za-z0-9-_]+/", $this->dlqName)) {
             throw new InvalidAttributeConfigurationException("Queue Name may only include alphanumeric characters, dashes and hyphens (given: \"$this->queueName\"");
         }
     }
