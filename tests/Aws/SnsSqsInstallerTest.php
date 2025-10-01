@@ -7,6 +7,7 @@ namespace Kekke\Mononoke\Tests\Aws;
 use Aws\Result;
 use Kekke\Mononoke\Aws\SnsSqsInstaller;
 use Kekke\Mononoke\Exceptions\MononokeException;
+use Kekke\Mononoke\Models\AwsConfig;
 use Kekke\Mononoke\Services\SnsService;
 use Kekke\Mononoke\Services\SqsService;
 use PHPUnit\Framework\TestCase;
@@ -58,7 +59,7 @@ class SnsSqsInstallerTest extends TestCase
 
         // Act
         $installer = new SnsSqsInstaller('test-topic', 'test-queue', null);
-        $installer->setup($snsMock, $sqsMock);
+        $installer->setup(new AwsConfig(), $snsMock, $sqsMock);
 
         // Assert
         $this->assertSame(
@@ -119,7 +120,7 @@ class SnsSqsInstallerTest extends TestCase
 
         // Act
         $installer = new SnsSqsInstaller('test-topic', 'test-queue', 'test-dlq');
-        $installer->setup($snsMock, $sqsMock);
+        $installer->setup(new AwsConfig(), $snsMock, $sqsMock);
     }
 
     public function testThrowsIfQueueArnMissing(): void
@@ -137,6 +138,6 @@ class SnsSqsInstallerTest extends TestCase
 
         // Act
         $installer = new SnsSqsInstaller('test-topic', 'test-queue', null);
-        $installer->setup($snsMock, $sqsMock);
+        $installer->setup(new AwsConfig(), $snsMock, $sqsMock);
     }
 }
