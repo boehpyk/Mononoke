@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Kekke\Mononoke\Models;
 
-final class AwsConfig
+final class AwsConfig extends ImmutableConfig
 {
     public function __construct(
         public readonly int $sqsPollTimeInSeconds = 5,

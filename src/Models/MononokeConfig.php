@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Kekke\Mononoke\Models;
 
-final class MononokeConfig
+final class MononokeConfig extends ImmutableConfig
 {
     public function __construct(
         public readonly string $serviceName = 'default',
