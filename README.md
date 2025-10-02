@@ -13,6 +13,14 @@ allowing you to build event-driven, scalable PHP applications.
 
 ---
 
+## Installation
+
+Via composer:
+
+`composer require kekke/mononoke`
+
+https://packagist.org/packages/kekke/mononoke
+
 ## Features
 
 - **AWS SNS and SQS Integration**  
