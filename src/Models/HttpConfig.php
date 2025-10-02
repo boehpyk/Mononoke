@@ -8,5 +8,7 @@ final class HttpConfig extends ImmutableConfig
 {
     public function __construct(
         public readonly int $port = 80
-    ) {}
+    ) {
+        parent::__construct();
+    }
 }

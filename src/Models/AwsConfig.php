@@ -9,5 +9,7 @@ final class AwsConfig extends ImmutableConfig
     public function __construct(
         public readonly int $sqsPollTimeInSeconds = 5,
         public readonly int $dlqMaxRetryCount = 3
-    ) {}
+    ) {
+        parent::__construct();
+    }
 }
