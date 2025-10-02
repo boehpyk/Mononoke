@@ -245,3 +245,14 @@ Subscribe a method to an SNS topic (via an SQS queue) with the `AwsSnsSqs` attri
 Mononoke is actively evolving. Expect rapid iteration, breaking changes, and new features as the framework stabilizes.  
 Contributions, bug reports, and feedback are highly appreciated!
 
+## License
+This project is licensed under the MIT License.
+
+It also makes use of third-party libraries under their respective licenses, including:
+- AWS SDK for PHP (Apache License 2.0)
+- Swoole IDE Helper (Apache License 2.0)
+- nikic/fast-route (MIT)
+- monolog/monolog (MIT)
+- phpstan/phpstan (MIT)
+- phpunit/phpunit (MIT)
+
