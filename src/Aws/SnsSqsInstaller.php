@@ -6,29 +6,32 @@ namespace Kekke\Mononoke\Aws;
 
 use Aws\Exception\AwsException;
 use Kekke\Mononoke\Exceptions\MononokeException;
+use Kekke\Mononoke\Models\AwsConfig;
 use Kekke\Mononoke\Services\SnsService;
 use Kekke\Mononoke\Services\SqsService;
 
 class SnsSqsInstaller
 {
     private string $queueUrl;
+    private ?string $dlqUrl = null;
 
-    public function __construct(private string $topicName, private string $queueName) {}
+    public function __construct(private string $topicName, private string $queueName, private ?string $dlqName) {}
 
     /**
      * Sets up a SNS topic and a SQS queue
      */
-    public function setup(): void
+    public function setup(AwsConfig $config = new AwsConfig(), SnsService $snsService = new SnsService(), SqsService $sqsService = new SqsService()): void
     {
         try {
-            $snsService = new SnsService();
             $topicArn = $snsService->create(topicName: $this->topicName);
         } catch (MononokeException $e) {
             throw new MononokeException($e->getMessage());
         }
 
         try {
-            $sqsService = new SqsService();
+            if (!is_null($this->dlqName)) {
+                $this->dlqUrl = $sqsService->create(queueName: $this->dlqName);
+            }
             $this->queueUrl = $sqsService->create(queueName: $this->queueName);
         } catch (MononokeException $e) {
             throw new MononokeException("Failed setting up SQS: {$e->getMessage()}");
@@ -36,10 +39,29 @@ class SnsSqsInstaller
 
         try {
             $fetchAttributes = ['QueueArn'];
+
             $queueAttributes = $sqsService->getAttributes(queueUrl: $this->queueUrl, attributeNames: $fetchAttributes);
 
             if (!isset($queueAttributes['Attributes']['QueueArn'])) {
                 throw new MononokeException("Missing Queue Attributes for queue: {$this->queueUrl}");
+            }
+
+            if ($this->dlqUrl) {
+                $dlqAttributes = $sqsService->getAttributes(queueUrl: $this->dlqUrl, attributeNames: $fetchAttributes);
+
+                if (!isset($dlqAttributes['Attributes']['QueueArn'])) {
+                    throw new MononokeException("Missing Queue Attributes for dead letter queue: {$this->dlqUrl}");
+                }
+
+                $redrivePolicy = json_encode([
+                    'deadLetterTargetArn' => $dlqAttributes['Attributes']['QueueArn'],
+                    'maxReceiveCount'     => $config->dlqMaxRetryCount,
+                ]);
+
+                $sqsService->setAttributes(
+                    queueUrl: $this->queueUrl,
+                    attributes: ['RedrivePolicy' => $redrivePolicy]
+                );
             }
 
             $sqsService->allowSnsToSendMessagesToQueue(

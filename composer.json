@@ -17,7 +17,14 @@
             "Kekke\\Mononoke\\": "src/"
         }
     },
-    "bin": ["src/bin/mononoke"],
+    "autoload-dev": {
+        "psr-4": {
+            "Kekke\\PHPStan\\": "phpstan/"
+        }
+    },
+    "bin": [
+        "src/bin/mononoke"
+    ],
     "authors": [
         {
             "name": "Henric Johansson",

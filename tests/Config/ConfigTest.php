@@ -36,6 +36,16 @@ final class ConfigTest extends TestCase
         $this->assertSame(8080, $config->http->port);
     }
 
+    public function testDlqOverrideFromEnv(): void
+    {
+        putenv('SQS_DLQ_MAX_RETRIES=5');
+        $service = new TestService();
+        $service->loadConfig();
+        $config = $service->getConfig();
+
+        $this->assertSame(5, $config->aws->dlqMaxRetryCount);
+    }
+
     public function testHttpPortOverrideFromEnv(): void
     {
         putenv('HTTP_PORT=9090');

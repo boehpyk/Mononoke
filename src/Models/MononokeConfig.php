@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace Kekke\Mononoke\Models;
 
-class MononokeConfig
+final class MononokeConfig extends ImmutableConfig
 {
-    public function __construct(public string $serviceName = 'default', public int $numberOfTaskWorkers = 2) {}
+    public function __construct(
+        public readonly string $serviceName = 'default',
+        public readonly int $numberOfTaskWorkers = 2
+    ) {
+        parent::__construct();
+    }
 }

@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Kekke\Mononoke\Models;
 
-class HttpConfig
+final class HttpConfig extends ImmutableConfig
 {
-    public function __construct(public int $port = 80) {}
+    public function __construct(
+        public readonly int $port = 80
+    ) {
+        parent::__construct();
+    }
 }

@@ -35,7 +35,7 @@ class OverrideApplier
         $type = gettype($configPart->{$override->varName});
         $casted = $this->castToType($envValue, $type);
 
-        $config->{$override->configName}->{$override->varName} = $casted;
+        $config->{$override->configName} = $config->{$override->configName}->with($override->varName, $casted);
     }
 
     private function castToType(mixed $value, string $type): mixed

@@ -32,6 +32,7 @@ use Swoole\Constant;
 use Swoole\Event;
 use Swoole\Server;
 use Swoole\Timer;
+use Throwable;
 
 /**
  * Main entrypoint for a Mononoke service
@@ -130,8 +131,8 @@ class Service
         foreach ($queueMethods as $entry) {
             foreach ($entry['attributes'] as $attr) {
                 // Setup sns and sqs
-                $installer = new SnsSqsInstaller($attr->topicName, $attr->queueName);
-                $installer->setup();
+                $installer = new SnsSqsInstaller($attr->topicName, $attr->queueName, $attr->dlqName);
+                $installer->setup(config: $this->config->aws);
                 $queueUrl = $installer->getQueueUrl();
 
                 // Setup poller
@@ -156,8 +157,12 @@ class Service
                     $messages = $queueEntry['poller']->poll();
 
                     foreach ($messages as $message) {
-                        $queueEntry['handler']->handle($message['Body']);
-                        $queueEntry['poller']->delete($message['ReceiptHandle']);
+                        try {
+                            $queueEntry['handler']->handle($message['Body']);
+                            $queueEntry['poller']->delete($message['ReceiptHandle']);
+                        } catch (Throwable $e) {
+                            Logger::exception("Error occured when handling message", $e);
+                        }
                     }
                 }
             });
