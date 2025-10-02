@@ -1,2 +1,11 @@
 parameters:
-	reportUnmatchedIgnoredErrors: false
+    reportUnmatchedIgnoredErrors: false
+    paths:
+        - src
+        - tests
+        - phpstan/Rules
+
+services:
+    -
+        class: Kekke\PHPStan\Rules\ImmutableConfigConstructorRule
+        tags: [phpstan.rules.rule]
