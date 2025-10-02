@@ -1,24 +1,4 @@
-FROM php:8.4-cli
-
-# Install dependencies for Swoole + build tools
-RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    inotify-tools \
-    brotli \
-    libbrotli-dev \
-    zlib1g-dev \
-    build-essential \
-    autoconf \
-    bash \
-    && rm -rf /var/lib/apt/lists/*
-
-# Enable pcntl
-RUN docker-php-ext-install pcntl
-
-# Install and enable swoole
-RUN pecl install swoole \
-    && docker-php-ext-enable swoole
+FROM phpswoole/swoole:php8.4
 
 # Copy composer from official image
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
