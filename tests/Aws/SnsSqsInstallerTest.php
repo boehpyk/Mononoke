@@ -71,6 +71,7 @@ class SnsSqsInstallerTest extends TestCase
     public function testSetupCreatesTopicAndQueueWithDlq(): void
     {
         // Arrange
+        $defaultConfig = new AwsConfig();
         $snsMock = $this->createMock(SnsService::class);
         $sqsMock = $this->createMock(SqsService::class);
 
@@ -111,10 +112,10 @@ class SnsSqsInstallerTest extends TestCase
             ->method('setAttributes')
             ->with(
                 'https://sqs.us-east-1.amazonaws.com/123456789012/test-queue',
-                $this->callback(function ($attributes) {
+                $this->callback(function ($attributes) use ($defaultConfig) {
                     $policy = json_decode($attributes['RedrivePolicy'], true);
                     return $policy['deadLetterTargetArn'] === 'arn:aws:sqs:us-east-1:123456789012:test-dlq'
-                        && $policy['maxReceiveCount'] === 5;
+                        && $policy['maxReceiveCount'] === $defaultConfig->dlqMaxRetryCount;
                 })
             );
 
