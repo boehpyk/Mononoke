@@ -1,6 +1,11 @@
-# Define default values for variables
-COMPOSE_FILE ?= docker-compose.yml
-APP_NAME ?= service
+#-----------------------------------------------------------
+# Argumants
+#-----------------------------------------------------------
+
+service ?= http.php
+tag ?= mononoke
+ports ?= 80:80
+APP_NAME = mononoke
 
 #-----------------------------------------------------------
 # Management
@@ -10,75 +15,47 @@ help: ## Show this help message
 	@grep -E '^[a-zA-Z0-9_.-]+:.*?## .*$$' $(MAKEFILE_LIST) \
     	| awk 'BEGIN {FS = ":.*?## "}; {printf "  make %-20s %s\n", $$1, $$2}'
 
-up: ## Start containers with default service sns.php
-	@echo "Default service: sns. Running containers in the background..."
-	docker compose -f ${COMPOSE_FILE} up -d
+build: ## Build container based on current Docker file with "tag" argument. Example: "make build tag=mononoke"
+	@echo "Building single container with tag ${tag}"
+	docker build -t ${tag} .
 
-up.http: ## Start containers with HTTP service
-	@echo "Service: http. Running containers in the background..."
-	SERVICE_FILE=http.php docker compose -f ${COMPOSE_FILE} up -d
+run: ## Run container with given tag, ports and service. Example: "make run tag=mononoke ports=8080:80 service=http.php"
+	@echo "Running single container tagged as ${tag}. Ports: ${ports}"
+	docker run --rm --name ${tag} -p ${ports} ${tag} examples/${service}
 
-up.websocket: ## Start containers with Websocket service
-	@echo "Service: websocket. Running containers in the background..."
-	SERVICE_FILE=websocket.php docker compose -f ${COMPOSE_FILE} up -d
+stop: ## Stop running container with given tag. Example: "make stop tag=mononoke"
+	@echo "Stop container tagged as ${tag}."
+	docker stop ${tag}
 
-up.websocket_http: ## Start containers with HTTP and Websocket service
-	@echo "Service: websocket and http. Running containers in the background..."
-	SERVICE_FILE=websocket_and_http.php docker compose -f ${COMPOSE_FILE} up -d
+up: ## Start all containers specified in docker-compose. Example: "make up service=sns.php". Default service: http.php
+	@echo "Running containers in the background..."
+	SERVICE_FILE=$(service) docker compose up -d
 
-down: ## Stop containers
+down: ## Stop all containers specified in docker-compose.
 	@echo "Stopping and removing containers..."
-	docker compose -f ${COMPOSE_FILE} down --remove-orphans
+	docker compose down --remove-orphans
 
-build: ## Build containers
-	@echo "Building containers..."
-	docker compose -f ${COMPOSE_FILE} build
+build.all: ## Build all containers specified in docker-compose
+	@echo "Building all containers..."
+	docker compose build
 
 ps: ## Show list of running containers
 	@echo "Listing running containers..."
-	docker compose -f ${COMPOSE_FILE} ps
+	docker compose ps
 
-restart: ## Restart containers
+restart: ## Restart all containers
 	@echo "Restarting containers..."
-	docker compose -f ${COMPOSE_FILE} restart
+	docker compose restart
 
 logs: ## View output from containers
-	docker compose -f ${COMPOSE_FILE} logs --tail 500
+	docker compose logs --tail 500
 
 fl: ## Follow output from containers (short of 'follow logs')
-	docker compose -f ${COMPOSE_FILE} logs --tail 500 -f
-
-prune: ## Prune stopped docker containers and dangling images
-	docker system prune
+	docker compose logs --tail 500 -f
 
 #-----------------------------------------------------------
 # Application
 #-----------------------------------------------------------
 
-app.bash: ## Enter the service container
-	docker compose -f ${COMPOSE_FILE} exec ${APP_NAME} /bin/bash
-
-restart.app: ## Restart the app container
-	docker compose -f ${COMPOSE_FILE} restart ${APP_NAME}
-
-## Alias to restart the app container
-ra: restart.app
-
-
-composer.install: ## Install composer dependencies
-	docker compose -f ${COMPOSE_FILE} exec ${APP_NAME} composer install
-
-## Alias to install composer dependencies
-ci: composer.install
-
-composer.update: ## Update composer dependencies
-	docker compose -f ${COMPOSE_FILE} exec ${APP_NAME} composer update
-
-## Alias to update composer dependencies
-cu: composer.update
-
-composer.outdated: ## Show outdated composer dependencies
-	docker compose -f ${COMPOSE_FILE} exec ${APP_NAME} composer outdated
-
-composer.autoload: ## PHP composer autoload command
-	docker compose -f ${COMPOSE_FILE} exec ${APP_NAME} composer dump-autoload
+shell: ## Enter the mononoke container
+	docker compose exec ${APP_NAME} /bin/bash

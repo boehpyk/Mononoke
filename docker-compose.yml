@@ -13,10 +13,11 @@ services:
       - "localstack_data:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
 
-  service:
+  mononoke:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: mononoke
     restart: on-failure
     tty: true
     depends_on:
@@ -35,7 +36,7 @@ services:
       - SERVICE_FILE=sns.php
     volumes:
       - ./src/:/app/src/
-    command: ["/app/examples/${SERVICE_FILE:-sns.php}"]
+    command: ["/app/src/bin/mononoke /app/examples/${SERVICE_FILE:-sns.php}"]
 
 volumes:
   localstack_data:
