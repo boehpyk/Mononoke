@@ -30,5 +30,6 @@
             "name": "Henric Johansson",
             "email": "hej@henricjohansson.se"
         }
-    ]
+    ],
+    "license": "MIT"
 }
