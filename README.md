@@ -261,6 +261,12 @@ class Service extends MononokeService
 }
 ```
 
+**Guidelines**
+
+- Make handlers **idempotent**; SQS may deliver messages at-least-once.
+- Handle failures and consider dead-letter queues (DLQ) in your AWS setup.
+- Keep handlers fast; offload long-running work if possible.
+
 ---
 
 ### 4. `WebSockets`
@@ -343,12 +349,6 @@ class Service extends MononokeService
 
 Available options can be discovered by peeking into the 3 different config classes;
 `MononokeConfig`, `AwsConfig` & `HttpConfig`.
-
-**Guidelines**
-
-- Make handlers **idempotent**; SQS may deliver messages at-least-once.
-- Handle failures and consider dead-letter queues (DLQ) in your AWS setup.
-- Keep handlers fast; offload long-running work if possible.
 
 ---
 
