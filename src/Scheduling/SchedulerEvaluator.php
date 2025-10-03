@@ -32,6 +32,15 @@ final class SchedulerEvaluator
                 return $this->timeMatchesNow($now, $schedule);
             }
 
+            if (in_array($schedule->scheduler, [
+                Scheduler::EverySecond,
+                Scheduler::EveryMinute,
+                Scheduler::Hourly,
+                Scheduler::Daily
+            ], true)) {
+                $state->updateInvocationTime($this->clock->now()->getTimestamp());
+            }
+
             return false;
         }
 
