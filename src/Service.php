@@ -78,7 +78,7 @@ class Service
             $this->server = &$server;
             $server->start();
         } else {
-            $this->setupSignalHandlers($hookDispatcher, $server);
+            $this->setupSignalHandlers($hookDispatcher);
             Event::wait();
         }
     }
@@ -96,26 +96,18 @@ class Service
         return $this->config;
     }
 
-    private function setupSignalHandlers(HookDispatcher $hookDispatcher, ?Server $server = null): void
+    private function setupSignalHandlers(HookDispatcher $hookDispatcher): void
     {
-        Process::signal(SIGINT, function () use ($server, $hookDispatcher) {
+        Process::signal(SIGINT, function () use ($hookDispatcher) {
             $hookDispatcher->trigger(RuntimeEvent::OnShutdown);
 
-            if (!is_null($server)) {
-                $server->shutdown();
-            } else {
-                Event::exit();
-            }
+            Event::exit();
         });
 
-        Process::signal(SIGTERM, function () use ($server, $hookDispatcher) {
+        Process::signal(SIGTERM, function () use ($hookDispatcher) {
             $hookDispatcher->trigger(RuntimeEvent::OnShutdown);
 
-            if (!is_null($server)) {
-                $server->shutdown();
-            } else {
-                Event::exit();
-            }
+            Event::exit();
         });
     }
 
