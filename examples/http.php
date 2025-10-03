@@ -11,11 +11,9 @@ use Kekke\Mononoke\Models\AwsConfig;
 use Kekke\Mononoke\Models\HttpConfig;
 use Kekke\Mononoke\Models\MononokeConfig;
 use Kekke\Mononoke\Service as MononokeService;
-
+use Swoole\Http\Request;
 
 #[Config(
-    mononoke: new MononokeConfig(numberOfTaskWorkers: 5),
-    aws: new AwsConfig(sqsPollTimeInSeconds: 10),
     http: new HttpConfig(port: 8080),
 )]
 class Service extends MononokeService
@@ -35,6 +33,14 @@ class Service extends MononokeService
     #[Http('GET', '/custom')]
     public function custom()
     {
+        return new Psr7Response(201, ['Authorization' => 'Bearer XXX'], "Body");
+    }
+
+    #[Http('POST', '/post')]
+    public function post(Request $request)
+    {
+        var_dump($request->header);
+        var_dump($request->getContent());
         return new Psr7Response(201, ['Authorization' => 'Bearer XXX'], "Body");
     }
 }

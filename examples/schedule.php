@@ -35,13 +35,19 @@ class Service extends MononokeService
         Logger::info("Ran minuteAt 30");
     }
 
-    #[Schedule(Scheduler::EveryMinute, invokeImmediately: true)]
+    #[Schedule(Scheduler::EveryMinute)]
     public function minute()
     {
         Logger::info("Ran minute");
     }
 
-    #[Schedule(Scheduler::EverySecond, invokeImmediately: true)]
+    #[Schedule(Scheduler::EveryMinute, invokeImmediately: true)]
+    public function minuteImmediately()
+    {
+        Logger::info("Ran minute immediately");
+    }
+
+    #[Schedule(Scheduler::EverySecond)]
     public function second()
     {
         Logger::info("Ran second");

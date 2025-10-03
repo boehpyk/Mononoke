@@ -9,6 +9,7 @@ use Kekke\Mononoke\Enums\Scheduler;
 use Kekke\Mononoke\Scheduling\FrozenClock;
 use Kekke\Mononoke\Scheduling\ScheduleState;
 use Kekke\Mononoke\Scheduling\SchedulerEvaluator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class SchedulerEvaluatorTest extends TestCase
@@ -154,5 +155,40 @@ final class SchedulerEvaluatorTest extends TestCase
             $this->evaluator->shouldRun($scheduleMinuteAt, $stateMinuteAt),
             'EveryMinuteAt ran immediately when it should not have.'
         );
+    }
+
+    #[DataProvider('schedulerProvider')]
+    public function testIntervalSchedulesDoNotRunImmediatelyWhenInvokeImmediatelyIsFalse(Scheduler $scheduleData): void
+    {
+        $schedule = new Schedule($scheduleData);
+
+        $state = new ScheduleState(null);
+
+        $this->clock->set(new \DateTimeImmutable('2025-08-09T07:04:44+00:00'));
+
+        $this->assertFalse(
+            $this->evaluator->shouldRun($schedule, $state),
+            'Schedule ran immediately when it should not have.'
+        );
+
+        $this->clock->set(new \DateTimeImmutable('2025-08-10T07:04:45+00:00'));
+
+        $this->assertTrue(
+            $this->evaluator->shouldRun($schedule, $state),
+            'Schedule did not run when it was supposed to be.'
+        );
+    }
+
+    /**
+     * @return array<string, list<Scheduler>>
+     */
+    public static function schedulerProvider(): array
+    {
+        return [
+            'EverySecond' => [Scheduler::EverySecond],
+            'EveryMinute' => [Scheduler::EveryMinute],
+            'Hourly' => [Scheduler::Hourly],
+            'Daily' => [Scheduler::Daily],
+        ];
     }
 }

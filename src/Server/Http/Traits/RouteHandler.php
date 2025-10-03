@@ -6,6 +6,7 @@ namespace Kekke\Mononoke\Server\Http\Traits;
 
 use GuzzleHttp\Psr7\Response as Psr7Response;
 use Kekke\Mononoke\Helpers\Logger;
+use Swoole\Http\Request;
 use Swoole\Http\Response;
 
 trait RouteHandler
@@ -13,9 +14,9 @@ trait RouteHandler
     /**
      * @param array<string, string> $vars
      */
-    public function handleRoute(callable $handler, array $vars, Response $response): void
+    public function handleRoute(callable $handler, Request $request, array $vars, Response $response): void
     {
-        $result = call_user_func_array($handler, $vars);
+        $result = call_user_func_array($handler, [$request, ...$vars]);
 
         switch (true) {
             case $result instanceof Psr7Response:
