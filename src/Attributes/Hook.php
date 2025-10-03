@@ -7,6 +7,9 @@ namespace Kekke\Mononoke\Attributes;
 use Attribute;
 use Kekke\Mononoke\Enums\RuntimeEvent;
 
+/**
+ * Attribute to define a hook.
+ */
 #[Attribute(Attribute::TARGET_METHOD)]
 class Hook
 {
