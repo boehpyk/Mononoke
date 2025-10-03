@@ -59,7 +59,7 @@ class HttpServerFactory implements ServerFactory
                     case \FastRoute\Dispatcher::FOUND:
                         $handler = $routeInfo[1];
                         $vars    = $routeInfo[2];
-                        $this->handleRoute($handler, $vars, $response);
+                        $this->handleRoute($handler, $request, $vars, $response);
                         break;
 
                     default:
