@@ -15,6 +15,8 @@ use Kekke\Mononoke\Aws\SqsMessageHandler;
 use Kekke\Mononoke\Aws\SqsPoller;
 use Kekke\Mononoke\Config\ConfigLoader;
 use Kekke\Mononoke\Enums\ClientType;
+use Kekke\Mononoke\Enums\RuntimeEvent;
+use Kekke\Mononoke\Helpers\HookDispatcher;
 use Kekke\Mononoke\Helpers\Logger;
 use Kekke\Mononoke\Reflection\AttributeScanner;
 use Kekke\Mononoke\Scheduling\ScheduledInvoker;
@@ -30,6 +32,7 @@ use Kekke\Mononoke\Server\Task\TaskRouteLoader;
 use Kekke\Mononoke\Server\WebSocket\WebSocketServerFactory;
 use Swoole\Constant;
 use Swoole\Event;
+use Swoole\Process;
 use Swoole\Server;
 use Swoole\Timer;
 use Throwable;
@@ -51,6 +54,7 @@ class Service
      */
     final public function run(): void
     {
+        $hookDispatcher = new HookDispatcher($this);
         $httpRouteLoader = new HttpRouteLoader();
         $wsRouteLoader = new WebSocketRouteLoader();
         $taskRouteLoader = new TaskRouteLoader();
@@ -61,17 +65,20 @@ class Service
 
         $options = new Options($httpRoutes, $wsRoutes, $taskRoutes, $this->config);
 
-        $server = $this->setupServer($options);
+        $server = $this->setupServer($options, $hookDispatcher);
 
         $this->setupQueuePoller();
         $this->setupScheduler();
-
+        
         Logger::info("Mononoke framework up and running!");
-
+        
+        $hookDispatcher->trigger(RuntimeEvent::OnStart);
+        
         if (!is_null($server)) {
             $this->server = &$server;
             $server->start();
         } else {
+            $this->setupSignalHandlers($hookDispatcher);
             Event::wait();
         }
     }
@@ -89,7 +96,22 @@ class Service
         return $this->config;
     }
 
-    private function setupServer(Options $options): ?Server
+    private function setupSignalHandlers(HookDispatcher $hookDispatcher): void
+    {
+        Process::signal(SIGINT, function () use ($hookDispatcher) {
+            $hookDispatcher->trigger(RuntimeEvent::OnShutdown);
+
+            Event::exit();
+        });
+
+        Process::signal(SIGTERM, function () use ($hookDispatcher) {
+            $hookDispatcher->trigger(RuntimeEvent::OnShutdown);
+
+            Event::exit();
+        });
+    }
+
+    private function setupServer(Options $options, HookDispatcher $hookDispatcher): ?Server
     {
         $server = null;
 
@@ -117,6 +139,12 @@ class Service
 
             $server->set([Constant::OPTION_TASK_WORKER_NUM => $this->config->mononoke->numberOfTaskWorkers]); // @phpstan-ignore-line
             Logger::info("Created {$this->config->mononoke->numberOfTaskWorkers} task workers");
+        }
+
+        if (!is_null($server)) {
+            $server->on('Shutdown', function () use ($hookDispatcher) {
+                $hookDispatcher->trigger(RuntimeEvent::OnShutdown);
+            });
         }
 
         return $server;
