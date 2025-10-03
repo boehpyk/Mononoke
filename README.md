@@ -232,6 +232,118 @@ Subscribe a method to an SNS topic (via an SQS queue) with the `AwsSnsSqs` attri
     }
 ```
 
+**DLQ**
+
+Using a DLQ is possible via the `dlqName` parameter in the `AwsSnsSqs` attribute.
+When using a DLQ, the message will be handled and if an uncaught exception is thrown while handling the message, send the message to the DLQ after `dlqMaxRetryCount` retries.
+
+```php
+    #[AwsSnsSqs(topicName: 'sns-topic', queueName: 'sqs-queue', dlqName: 'sqs-queue-dlq')]
+    public function queueWithDlq($message)
+    {
+        throw new Exception("Error occurred, send to dlq after 3 tries");
+    }
+```
+
+You can adjust the retries using the config;
+
+```php
+#[Config(
+    aws: new AwsConfig(dlqMaxRetryCount: 10),
+)]
+class Service extends MononokeService
+{
+    #[AwsSnsSqs(topicName: 'sns-topic', queueName: 'sqs-queue', dlqName: 'sqs-queue-dlq')]
+    public function queueWithDlq($message)
+    {
+        throw new Exception("Error occurred, send to dlq after 3 tries");
+    }
+}
+```
+
+---
+
+### 4. `WebSockets`
+
+Create a websocket server using the `WebSocket` attribute.
+
+**Usage**
+
+```php
+class Service extends MononokeService
+{
+    #[WebSocket(WebSocketEvent::OnOpen)]
+    public function onOpened($server, $fd)
+    {
+        Logger::info("Opened!");
+    }
+
+    #[WebSocket(WebSocketEvent::OnMessage)]
+    public function onMessage($server, $fd, $message)
+    {
+        Logger::info("Message received", ['message' => $message]);
+        $server->push($fd, "Received: $message");
+    }
+
+    #[WebSocket(WebSocketEvent::OnClose)]
+    public function onClose($server, $fd)
+    {
+        Logger::info("Connection closed", ['fd' => $fd]);
+    }
+}
+```
+
+---
+
+### 5. `Tasks`
+
+Create background workers using the task interface
+
+**Usage**
+
+```php
+    #[Http('GET', '/create')]
+    public function create()
+    {
+        $task = new BackgroundTask($this->server);
+        $task->dispatch('task_name', ['message' => 'Hello World!']);
+        return "OK";
+    }
+
+    #[Task(identifier: 'task_name')]
+    public function task($data)
+    {
+        Logger::info("Task handler executed", ['data' => $data]);
+    }
+```
+
+To dispatch a new task, use `(new BackgroundTask($this->server))->dispatch('task_name', ['message' => 'Hello World!']);` and then make sure that setup a task handler using the `Task` attribute.
+
+---
+
+## Config
+
+You can adjust several options using the `Config` attribute in Mononoke.
+
+To get started, attach a `Config` attribute to your Service class, the `Config` attribute then accepts 3 different configs that you may adjust to your liking.
+
+**Usage**
+
+```php
+#[Config(
+    mononoke: new MononokeConfig(numberOfTaskWorkers: 5),
+    aws: new AwsConfig(sqsPollTimeInSeconds: 10, dlqMaxRetryCount: 10),
+    http: new HttpConfig(port: 8080),
+)]
+class Service extends MononokeService
+{
+    ...
+}
+```
+
+Available options can be discovered by peeking into the 3 different config classes;
+`MononokeConfig`, `AwsConfig` & `HttpConfig`.
+
 **Guidelines**
 
 - Make handlers **idempotent**; SQS may deliver messages at-least-once.
