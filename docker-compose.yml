@@ -36,7 +36,7 @@ services:
       - SERVICE_FILE=sns.php
     volumes:
       - ./src/:/app/src/
-    command: ["/app/src/bin/mononoke /app/examples/${SERVICE_FILE:-sns.php}"]
+    command: ["/app/examples/${SERVICE_FILE:-sns.php}"]
 
 volumes:
   localstack_data:
