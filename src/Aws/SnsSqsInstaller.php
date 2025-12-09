@@ -15,7 +15,7 @@ class SnsSqsInstaller
     private string $queueUrl;
     private ?string $dlqUrl = null;
 
-    public function __construct(private string $topicName, private string $queueName, private ?string $dlqName, private bool $autoCreate = true) {}
+    public function __construct(private string $topicName, private string $queueName, private ?string $dlqName) {}
 
     /**
      * Method to get the AWS_REGION
@@ -52,7 +52,7 @@ class SnsSqsInstaller
          * If we are not creating sns topic, sqs queue and subscribing queue to topic, then just build the queueUrl 
          * so that we can poll from it.
          */
-        if (!$this->autoCreate) {
+        if (!$config->autoCreateResources) {
             $region    = $this->getAwsRegion();
             $accountId = $this->getAwsAccountId();
 

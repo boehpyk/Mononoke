@@ -90,10 +90,9 @@ class SnsSqsInstallerTest extends TestCase
             topicName: 'test-topic',
             queueName: 'test-queue',
             dlqName: null,
-            autoCreate: false
         );
 
-        $installer->setup(new AwsConfig(), $snsMock, $sqsMock);
+        $installer->setup(new AwsConfig(autoCreateResources: false), $snsMock, $sqsMock);
 
         // Assert
         $this->assertSame($queueUrl, $installer->getQueueUrl());
