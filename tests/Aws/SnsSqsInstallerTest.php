@@ -14,6 +14,14 @@ use PHPUnit\Framework\TestCase;
 
 class SnsSqsInstallerTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        putenv('AWS_REGION');
+        putenv('AWS_ACCOUNT_ID');
+
+        parent::tearDown();
+    }
+
     public function testSetupCreatesTopicAndQueueWithoutDlq(): void
     {
         // Arrange
