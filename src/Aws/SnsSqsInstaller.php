@@ -18,10 +18,67 @@ class SnsSqsInstaller
     public function __construct(private string $topicName, private string $queueName, private ?string $dlqName) {}
 
     /**
+     * Method to get the AWS_REGION
+     * This is only used when not automatically creating resources in AWS.
+     */
+    private function getAwsRegion(): string
+    {
+        return getenv('AWS_REGION')
+            ?: getenv('AWS_DEFAULT_REGION')
+            ?: throw new MononokeException("AWS region not set in environment");
+    }
+
+    /**
+     * Method to get the AWS_ACCOUNT_ID env variable
+     * This is only used when not automatically creating resources in AWS.
+     */
+    private function getAwsAccountId(): string
+    {
+        $id = getenv('AWS_ACCOUNT_ID');
+
+        if (!$id) {
+            throw new MononokeException("AWS_ACCOUNT_ID must be set in environment when using autoCreate false");
+        }
+
+        return $id;
+    }
+
+    /**
      * Sets up a SNS topic and a SQS queue
      */
     public function setup(AwsConfig $config = new AwsConfig(), SnsService $snsService = new SnsService(), SqsService $sqsService = new SqsService()): void
     {
+        /**
+         * If we are not creating sns topic, sqs queue and subscribing queue to topic, then just build the queueUrl 
+         * so that we can poll from it.
+         */
+        if (!$config->autoCreateResources) {
+            $region    = $this->getAwsRegion();
+            $accountId = $this->getAwsAccountId();
+
+            if (!is_null($this->dlqName)) {
+                $this->dlqUrl = sprintf(
+                    'https://sqs.%s.amazonaws.com/%s/%s',
+                    $region,
+                    $accountId,
+                    $this->dlqName
+                );
+            }
+
+            $this->queueUrl = sprintf(
+                'https://sqs.%s.amazonaws.com/%s/%s',
+                $region,
+                $accountId,
+                $this->queueName
+            );
+
+            return;
+        }
+
+        /**
+         * This is creating a SNS topic, a SQS queue, optionally a DLQ queue, and then subscribing 
+         * the SQS queue to the SNS topic
+         */
         try {
             $topicArn = $snsService->create(topicName: $this->topicName);
         } catch (MononokeException $e) {

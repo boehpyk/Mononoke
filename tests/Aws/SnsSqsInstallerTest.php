@@ -14,6 +14,14 @@ use PHPUnit\Framework\TestCase;
 
 class SnsSqsInstallerTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        putenv('AWS_REGION');
+        putenv('AWS_ACCOUNT_ID');
+
+        parent::tearDown();
+    }
+
     public function testSetupCreatesTopicAndQueueWithoutDlq(): void
     {
         // Arrange
@@ -66,6 +74,36 @@ class SnsSqsInstallerTest extends TestCase
             'https://sqs.us-east-1.amazonaws.com/123456789012/test-queue',
             $installer->getQueueUrl()
         );
+    }
+
+    public function testSetupDoesNotCreateTopicOrQueueWhenAutoCreateIsFalse(): void
+    {
+        // Arrange
+        putenv('AWS_REGION=us-east-1');
+        putenv('AWS_ACCOUNT_ID=123456789012');
+
+        $snsMock = $this->createMock(SnsService::class);
+        $sqsMock = $this->createMock(SqsService::class);
+
+        $snsMock->expects($this->never())
+            ->method('create');
+
+        $sqsMock->expects($this->never())
+            ->method('create');
+
+        $queueUrl = 'https://sqs.us-east-1.amazonaws.com/123456789012/test-queue';
+
+        // Act
+        $installer = new SnsSqsInstaller(
+            topicName: 'test-topic',
+            queueName: 'test-queue',
+            dlqName: null,
+        );
+
+        $installer->setup(new AwsConfig(autoCreateResources: false), $snsMock, $sqsMock);
+
+        // Assert
+        $this->assertSame($queueUrl, $installer->getQueueUrl());
     }
 
     public function testSetupCreatesTopicAndQueueWithDlq(): void
