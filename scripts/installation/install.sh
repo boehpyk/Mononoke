@@ -8,7 +8,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/boehpyk/Mononoke/blob/9de406b48bdc74ef690d0856cd136ba51beb996d/scripts/installation/mononoke-app.zip"
+REPO_URL="https://github.com/boehpyk/Mononoke/raw/9de406b48bdc74ef690d0856cd136ba51beb996d/scripts/installation/mononoke-app.zip"
 INSTALL_DIR="$(pwd)"
 
 # Print colored message
