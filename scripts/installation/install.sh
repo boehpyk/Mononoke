@@ -219,7 +219,6 @@ print_success() {
     echo ""
     print_message "$BLUE" "Application installed at: $INSTALL_DIR"
     echo ""
-    print_message "$YELLOW" "Useful commands:"
     make help
     echo ""
 }
