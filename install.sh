@@ -8,7 +8,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/boehpyk/Mononoke/blob/bbe12cd74fe24434b63c9bb7173f37f0d4c40280/scripts/installation/mononoke-app.zip"
+REPO_URL="https://github.com/boehpyk/mononoke-app/archive/refs/heads/master.zip"
 INSTALL_DIR="$(pwd)"
 
 # Print colored message
@@ -205,21 +205,6 @@ start_application() {
     if ! docker compose -f docker-compose.dev.yml build --no-cache ; then
         print_message "$RED" "Error: Failed to build application container"
         exit 1
-    fi
-
-    # Run composer install if composer.json exists so that IDE autocompletion works
-    if [ -f composer.json ]; then
-        if command_exists composer; then
-            print_message "$YELLOW" "Installing PHP dependencies with composer..."
-            if ! composer install --no-interaction --prefer-dist; then
-                print_message "$RED" "Error: composer install failed"
-                exit 1
-            fi
-            print_message "$GREEN" "✓ PHP dependencies installed"
-        else
-            print_message "$RED" "Error: Composer is not installed"
-            exit 1
-        fi
     fi
 
     print_message "$GREEN" "✓ Application started successfully"
